@@ -43,7 +43,7 @@ export class EmailService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'api-key': apiKey },
         body: JSON.stringify({
-          sender: { email: senderEmail, name: 'LifeCome Live' },
+          sender: { email: senderEmail, name: this.config.brevoSenderName },
           to: [{ email: input.to }],
           subject: input.subject,
           htmlContent: input.html,

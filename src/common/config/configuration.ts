@@ -62,4 +62,8 @@ export class AppConfigService {
   get brevoSenderEmail(): string | undefined {
     return this.config.get('BREVO_SENDER_EMAIL', { infer: true });
   }
+
+  get brevoSenderName(): string {
+    return this.config.get('BREVO_SENDER_NAME', { infer: true });
+  }
 }
