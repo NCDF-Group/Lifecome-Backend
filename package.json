@@ -23,7 +23,8 @@
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed:staff": "tsx src/db/seed-staff.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "keep-alive": "tsx src/scripts/keep-alive.ts"
   },
   "dependencies": {
     "@fastify/compress": "^9.2.0",

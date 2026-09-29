@@ -46,4 +46,20 @@ export class AppConfigService {
   get paystackSecretKey(): string | undefined {
     return this.config.get('PAYSTACK_SECRET_KEY', { infer: true });
   }
+
+  get httpsmsApiKey(): string | undefined {
+    return this.config.get('HTTPSMS_API_KEY', { infer: true });
+  }
+
+  get httpsmsFromNumber(): string | undefined {
+    return this.config.get('HTTPSMS_FROM_NUMBER', { infer: true });
+  }
+
+  get brevoApiKey(): string | undefined {
+    return this.config.get('BREVO_API_KEY', { infer: true });
+  }
+
+  get brevoSenderEmail(): string | undefined {
+    return this.config.get('BREVO_SENDER_EMAIL', { infer: true });
+  }
 }

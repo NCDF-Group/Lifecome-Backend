@@ -7,7 +7,8 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { DRIZZLE, type Database } from '../../db/client';
 import { otpChallenges, userAccounts } from '../../db/schema';
 import { AppConfigService } from '../../common/config/configuration';
-import { AppException } from '../../common/errors/app-exception';
+import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
+import { SmsService } from '../../common/sms/sms.service';
 
 const OTP_TTL_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
@@ -23,6 +24,7 @@ export class IdentityService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly config: AppConfigService,
+    private readonly sms: SmsService,
     @InjectPinoLogger(IdentityService.name) private readonly logger: PinoLogger,
   ) {}
 
@@ -43,6 +45,9 @@ export class IdentityService {
   }
 
   async requestOtp(userAccountId: string): Promise<{ expiresAt: Date }> {
+    const [account] = await this.db.select().from(userAccounts).where(eq(userAccounts.id, userAccountId));
+    if (!account) throw new NotFoundAppException('User account');
+
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const codeHash = this.hashCode(code);
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
@@ -54,10 +59,17 @@ export class IdentityService {
       expiresAt,
     });
 
-    // No SMS provider is configured in this scaffold (see .env.example — TERMII_API_KEY).
-    // Never log a live OTP in production; in development this is how you retrieve it to test with.
+    // SmsService no-ops (and just logs) when HTTPSMS_API_KEY/HTTPSMS_FROM_NUMBER aren't set — see
+    // its own doc comment for why a failed/unconfigured send never blocks this request.
+    await this.sms.send({
+      to: account.phoneNumber,
+      body: `Your LifeCome Live verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+    });
+
+    // Never log a live OTP in production; in development this is how you retrieve it without a
+    // phone attached (see SmsService for the equivalent behind HTTPSMS_API_KEY).
     if (!this.config.isProduction) {
-      this.logger.debug({ userAccountId, code }, 'OTP generated (development only — not sent via SMS)');
+      this.logger.debug({ userAccountId, code }, 'OTP generated (development only — logged regardless of SMS delivery)');
     }
 
     return { expiresAt };

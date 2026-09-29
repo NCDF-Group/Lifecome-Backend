@@ -1,9 +1,3 @@
-databases:
-  - name: lifecome-db
-    plan: free
-    databaseName: lifecome_dev
-    user: lifecome
-
 services:
   - name: lifecome-redis
     type: keyvalue
@@ -24,18 +18,22 @@ services:
         value: production
       - key: LOG_LEVEL
         value: info
+      # Neon (neon.tech), not Render's own Postgres - a project's *direct* (non-pooled) connection
+      # string, not the "-pooler" one: this app already manages its own connection pool
+      # (db/client.ts), so Neon's PgBouncer pooler would just be a second, redundant pooling layer.
+      # Get it from the Neon console's "Connect" button. Must include `?sslmode=require`.
       - key: DATABASE_URL
-        fromDatabase:
-          name: lifecome-db
-          property: connectionString
+        sync: false
       - key: REDIS_URL
         fromService:
           type: keyvalue
           name: lifecome-redis
           property: connectionString
-      # The deployed Lifecome-admin (and Lifecome-web) origin(s), comma-separated - fill in after
-      # that's deployed. Not needed for Lifecome-admin's own requests (those run server-side, not
-      # from its browser), but Lifecome-web's client-side calls do need it.
+      # Comma-separated origin(s) allowed to call this API directly from a browser. Nothing does
+      # today - Lifecome-admin's requests run server-side (no browser involved) and Lifecome-web
+      # has no API calls at all yet - so this can stay at its default (localhost:3000) until a
+      # browser-side caller exists. Set it to that site's deployed origin, e.g.
+      # https://your-app.vercel.app, when one does.
       - key: CORS_ORIGIN
         sync: false
       # Auto-generated, unique per environment - never the "dev-only-change-me" placeholder from
@@ -44,11 +42,26 @@ services:
         generateValue: true
       - key: STAFF_JWT_SECRET
         generateValue: true
-      # Used once by `npm run db:seed:staff`, not by the running app - see the deploy guide in
-      # README.md for running that as a one-off Shell command after the first deploy.
+      # Used once by `npm run db:seed:staff`, not by the running app. Render's Shell needs a paid
+      # plan, so on free Render run this locally instead, pointed at Neon - see README.md's
+      # "Deploying" section, step 7.
       - key: SEED_ADMIN_EMAIL
         sync: false
       - key: SEED_ADMIN_PASSWORD
         sync: false
       - key: SEED_ADMIN_NAME
+        sync: false
+      # OTP delivery via httpSMS (httpsms.com) - see src/common/sms/sms.service.ts. Both are
+      # optional: leave them unset and OTP requests just log the code instead of sending it.
+      # HTTPSMS_FROM_NUMBER is the phone's own number in E.164 (e.g. +2348012345678).
+      - key: HTTPSMS_API_KEY
+        sync: false
+      - key: HTTPSMS_FROM_NUMBER
+        sync: false
+      # Transactional email via Brevo (brevo.com) - see src/common/email/email.service.ts. Optional:
+      # leave unset and emails just log instead of sending. BREVO_SENDER_EMAIL must be a verified
+      # sender in the Brevo account (Settings → Senders) or sends are rejected.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
         sync: false

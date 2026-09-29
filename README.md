@@ -110,6 +110,51 @@ in development and tests, so booking → eligibility → authorisation flows can
 before a real HMO integration exists. **A new payer is config, not a code branch** — see
 [the blueprint, §9](../docs/prd/lifecome-live-blueprint.md#9-multi-hmo-integration-architecture).
 
+## SMS delivery
+
+`modules/identity/identity.service.ts` sends the phone-verification OTP via **httpSMS**
+(httpsms.com, `common/sms/sms.service.ts`) — not a telecom aggregator like Termii or Twilio. The
+"provider" is a real Android phone running the httpSMS app on its own SIM; the API just tells that
+phone to send a normal text message through its own carrier connection.
+
+This is a deliberate, scale-limited choice, not a placeholder for something better already built:
+
+- **One physical phone** does the sending — its battery, signal and the free/paid httpSMS plan's
+  monthly cap (200 free, then $10/mo for 5K or $20/mo for 10K) are the real throughput limit.
+- **No delivery SLA.** If the phone is off, offline, or the httpSMS app gets killed by battery
+  optimisation, sends silently stop (httpSMS does notify the account owner when the phone goes
+  offline, but nothing here surfaces that in the admin console yet).
+- **The sender is that phone's own number**, not a short code — recipients see the OTP arrive from
+  an ordinary mobile number.
+- **A carrier could flag or throttle the SIM** for sending automated, similar-looking messages,
+  since that's outside what a personal SIM plan is meant for.
+
+It's the right fit for the current scale (one market, low volume) and for testing OTP delivery on
+a real phone instead of reading the code from a log. Move to a real aggregator — Termii for
+Nigeria (`TERMII_API_KEY` already exists in the env schema, unused so far), a separate provider for
+the UK — before volume or reliability requirements outgrow it; `SmsService`'s interface
+(`send({ to, body })`) is the seam to swap behind, `IdentityService` doesn't need to change.
+
+**Setup:** create an account at [httpsms.com](https://httpsms.com), install the companion Android
+app on the phone, sign in with the API key from the account's settings page, then set
+`HTTPSMS_API_KEY` (the account's API key) and `HTTPSMS_FROM_NUMBER` (that phone's own number, in
+E.164, e.g. `+2348012345678`) — see `.env.example`. Leave both unset and `requestOtp` just logs the
+code instead of sending it (development's existing behaviour, unchanged).
+
+## Email delivery
+
+Transactional email goes through **Brevo** (brevo.com, `common/email/email.service.ts`) — a real
+email API, not a personal-device workaround like the SMS setup above. The only thing that sends one
+today is `StaffService.create()`, which emails a new staff member that their operations-console
+account exists (deliberately **not** their password — whoever created the account shares that with
+them directly; the email just confirms the account and role).
+
+**Setup:** create an account at [brevo.com](https://brevo.com), add and verify a sender address
+under **Settings → Senders** (unverified senders are rejected), then get an API key under
+**Settings → API Keys**. Set `BREVO_API_KEY` and `BREVO_SENDER_EMAIL` (the verified address) — see
+`.env.example`. Leave either unset and `EmailService.send` just logs instead of sending, the same
+fallback `SmsService` uses. Free plan: 300 emails/day, no time limit.
+
 ## Operations console API
 
 [`Lifecome-admin`](../Lifecome-admin) — the staff-facing console — talks to a separate, guarded
@@ -148,33 +193,83 @@ surface rather than the patient-facing endpoints above:
 
 ## Deploying
 
-`render.yaml` at the repo root is a [Render Blueprint](https://render.com/docs/blueprint-spec):
-a Postgres database, a Redis (Key Value) instance, and a web service built from the existing
-`Dockerfile` - all three wired together, so a fresh deploy is "connect the repo" rather than
-manually provisioning and cross-referencing each piece.
+Postgres is [Neon](https://neon.tech), not Render's own Postgres (see the free-tier notes below for
+why). Everything else - Redis and the API itself - is Render.
 
-1. Push this repo to GitHub/GitLab (Render deploys from a git remote, not a local directory).
-2. In the Render dashboard: **New → Blueprint**, point it at the repo. Render reads `render.yaml`
-   and shows you the three resources (`lifecome-db`, `lifecome-redis`, `lifecome-backend`) before
-   creating anything.
-3. It will prompt for the `sync: false` variables it can't infer on its own:
-   `CORS_ORIGIN` (leave blank for now if the console/website aren't deployed yet - you can add it
-   after and redeploy), `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME`.
-   `SESSION_JWT_SECRET` and `STAFF_JWT_SECRET` are generated for you (`generateValue: true`) - real
-   random secrets, not the `dev-only-change-me` placeholders from `.env.example`.
-4. Deploy. The container runs `db:migrate` before `main.js` starts on every boot (see the
+### Manual setup (free Render plan, no Blueprint)
+
+Render's free plan has no Shell/SSH access at all (that's a paid-plan feature), which rules out
+running a one-off command like the seed script *on* Render - step 7 below runs it from your own
+machine against Neon instead, which works from anywhere since Neon isn't network-restricted to
+Render the way a Shell session would be anyway.
+
+1. Sign up at [neon.tech](https://neon.tech), create a project, click **Connect**, and copy the
+   *direct* connection string - the one **without** `-pooler` in the hostname. Use the direct one
+   because this app already manages its own connection pool (`db/client.ts`); Neon's pooler
+   (PgBouncer) on top of that would just be a redundant second pooling layer. It already includes
+   `?sslmode=require`.
+2. Push this repo to GitHub/GitLab.
+3. Render dashboard → **New → Key Value**. Free plan, any name (e.g. `lifecome-redis`), same region
+   you'll use for the web service. Once it's up, copy its **Internal Connection String** - that's
+   `REDIS_URL`.
+4. Render dashboard → **New → Web Service**, connect this repo. Set **Language** to **Docker**
+   (Render doesn't auto-detect the Dockerfile - you have to pick it) and **Plan** to **Free**. Leave
+   Dockerfile Path/Build Context as their defaults (the Dockerfile is at the repo root). Under
+   **Advanced**, set **Health Check Path** to `/api/v1/health/live`.
+5. Before the first deploy, add every environment variable (**Environment** tab → **Add
+   Environment Variable**, or **Add from .env** to paste them all at once):
+
+   | Key | Value |
+   |---|---|
+   | `NODE_ENV` | `production` |
+   | `LOG_LEVEL` | `info` |
+   | `DATABASE_URL` | the Neon connection string from step 1 |
+   | `REDIS_URL` | the Key Value connection string from step 3 |
+   | `SESSION_JWT_SECRET` | a random secret - see below |
+   | `STAFF_JWT_SECRET` | a **different** random secret |
+   | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` | your choice - used once, in step 7 |
+   | `CORS_ORIGIN` | leave unset for now - nothing calls this API from a browser yet, see "SMS/Email delivery" comments in `.env.example` for the pattern once something does |
+   | `HTTPSMS_API_KEY`, `HTTPSMS_FROM_NUMBER` | optional - see "SMS delivery" above |
+   | `BREVO_API_KEY`, `BREVO_SENDER_EMAIL` | optional - see "Email delivery" above |
+
+   Render's manual env var form has no "generate a random value" button (that's a Blueprint-only
+   feature - see below) - generate the two JWT secrets yourself, e.g. `openssl rand -base64 32` run
+   twice, once per secret. Never reuse one secret for both.
+6. Deploy. The container runs `db:migrate` before `main.js` starts on every boot (see the
    `Dockerfile`'s `CMD`) - idempotent, so this is safe on every restart, not just the first one.
-5. Create the first staff account once, via Render's **Shell** tab on the `lifecome-backend`
-   service: `npm run db:seed:staff`. (This isn't run automatically on boot, unlike migrations,
-   so a missing `SEED_ADMIN_*` var can't crash a restart - see that script's own comment.)
-6. Your API is now live at the `.onrender.com` URL Render assigns - that's the value
-   `Lifecome-admin`'s `NEXT_PUBLIC_API_URL` (and `Lifecome-web`'s equivalent) should point at. Once
-   those are deployed, come back and fill in `CORS_ORIGIN` with their real origins and redeploy.
+7. Create the first staff account once, **from your own machine**, against Neon directly:
+   ```bash
+   DATABASE_URL="<the same Neon connection string>" \
+   SEED_ADMIN_EMAIL="<the same value you set on Render>" \
+   SEED_ADMIN_PASSWORD="<the same value you set on Render>" \
+   SEED_ADMIN_NAME="<the same value you set on Render>" \
+   npx tsx src/db/seed-staff.ts
+   ```
+   This only ever needs those four variables (it doesn't read `.env` or anything else the full app
+   needs), so it's safe to run this way without a real `.env` pointed at production. The same
+   pattern - run a script locally with `DATABASE_URL` pointed at Neon - works for any future one-off
+   task too, since Render's free plan never gives you a shell to run it from over there.
+8. Your API is now live at the `.onrender.com` URL Render assigns - that's the value
+   `Lifecome-admin`'s `NEXT_PUBLIC_API_URL` should point at.
 
-Render's free tier works for trying this out, with caveats worth knowing before you rely on it:
-the free Postgres instance is deleted after 30 days unless upgraded, the free web service spins
-down after 15 minutes idle (the next request wakes it, slowly), and free Key Value instances have
-no peristence guarantee. None of that matters for a demo; all of it matters for anything real.
+### Blueprint setup (paid Render plan, or if you upgrade later)
+
+`render.yaml` at the repo root is a [Render Blueprint](https://render.com/docs/blueprint-spec) that
+does steps 3-6 above in one pass - point **New → Blueprint** at the repo, and it prompts for
+`DATABASE_URL` (the Neon string from step 1), `CORS_ORIGIN`, `SEED_ADMIN_*`, `HTTPSMS_*` and
+`BREVO_*` (the ones marked `sync: false`), auto-generating `SESSION_JWT_SECRET`/`STAFF_JWT_SECRET`
+for you. Step 7 (seeding) is unchanged either way - it's a one-time local command regardless of
+which paid plan you're on, since Shell access needs a paid plan too.
+
+### Free-tier caveats
+
+- **Render**: the free web service spins down after 15 minutes idle (the next request wakes it,
+  slowly), and free Key Value instances have no persistence guarantee. `npm run keep-alive` (see
+  above) is one way to keep it warm, run from somewhere that's itself always on.
+- **Neon**: the free plan is 0.5 GB storage and 100 compute-hours/month, and **compute scales to
+  zero after 5 minutes of inactivity** - the next query pays a cold-start delay. Pinging
+  `/api/v1/health/ready` (not `/health/live`) with `keep-alive` also queries the database, so it
+  keeps Neon warm too, if that matters more to you than the extra load.
 
 ## Conventions
 
