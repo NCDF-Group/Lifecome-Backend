@@ -33,7 +33,8 @@ npm run dev                   # API at http://localhost:3001/api/v1, Swagger UI 
 ```
 
 Every route is served under `/api/v1` (a global prefix plus URI versioning, so the API can add a
-`v2` later without breaking `v1` clients — blueprint §7.1). `/api/docs` is disabled in production.
+`v2` later without breaking `v1` clients — blueprint §7.1). `/api/docs` is served in every
+environment, including production, so other teams (web, mobile) have one live API reference.
 
 | Command | What it does |
 |---|---|

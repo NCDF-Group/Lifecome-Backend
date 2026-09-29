@@ -37,17 +37,18 @@ async function bootstrap(): Promise<void> {
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
   app.enableShutdownHooks();
 
-  if (!config.isProduction) {
-    const document = SwaggerModule.createDocument(
-      app,
-      new DocumentBuilder()
-        .setTitle('LifeCome Live API')
-        .setDescription('Modular-monolith API for the LifeCome Live platform. See ../docs/prd for the product blueprint.')
-        .setVersion('0.1.0')
-        .build(),
-    );
-    SwaggerModule.setup('docs', app, document);
-  }
+  // Served in every environment (including production) so the frontend teams consuming this API
+  // — the LifeCome Live web app and mobile app — have one live reference for request/response
+  // shapes, rather than a doc that only exists locally.
+  const document = SwaggerModule.createDocument(
+    app,
+    new DocumentBuilder()
+      .setTitle('LifeCome Live API')
+      .setDescription('Modular-monolith API for the LifeCome Live platform. See ../docs/prd for the product blueprint.')
+      .setVersion('0.1.0')
+      .build(),
+  );
+  SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });
 
   await app.listen(config.port, '0.0.0.0');
 }
