@@ -32,10 +32,6 @@ function _ts_metadata(metadataKey, metadataValue) {
 }
 const TOKEN_TTL_SECONDS = 60 * 60 * 12; // matches CommonAuthModule's JwtModule signOptions.expiresIn
 let AuthService = class AuthService {
-    constructor(staff, jwt){
-        this.staff = staff;
-        this.jwt = jwt;
-    }
     async login(input) {
         const account = await this.staff.verifyCredentials(input.email, input.password);
         if (!account) {
@@ -51,6 +47,10 @@ let AuthService = class AuthService {
             expiresIn: TOKEN_TTL_SECONDS,
             staff: account
         };
+    }
+    constructor(staff, jwt){
+        this.staff = staff;
+        this.jwt = jwt;
     }
 };
 AuthService = _ts_decorate([

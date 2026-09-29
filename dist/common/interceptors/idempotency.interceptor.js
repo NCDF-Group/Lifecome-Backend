@@ -42,10 +42,6 @@ const HEADER = 'idempotency-key';
 const RESULT_TTL_SECONDS = 60 * 60 * 24; // keep a replayable result for 24h
 const LOCK_TTL_SECONDS = 30; // a request should not legitimately take longer than this
 let IdempotencyInterceptor = class IdempotencyInterceptor {
-    constructor(reflector, redis){
-        this.reflector = reflector;
-        this.redis = redis;
-    }
     intercept(context, next) {
         const required = this.reflector.get(_idempotentdecorator.IDEMPOTENT_KEY, context.getHandler());
         if (!required) {
@@ -73,6 +69,10 @@ let IdempotencyInterceptor = class IdempotencyInterceptor {
                     }
                 }))));
         }));
+    }
+    constructor(reflector, redis){
+        this.reflector = reflector;
+        this.redis = redis;
     }
 };
 IdempotencyInterceptor = _ts_decorate([

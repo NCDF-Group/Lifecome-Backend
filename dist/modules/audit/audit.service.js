@@ -38,9 +38,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let AuditService = class AuditService {
-    constructor(db){
-        this.db = db;
-    }
     async record(input) {
         const [last] = await this.db.select({
             hash: _schema.auditEvents.hash
@@ -77,6 +74,9 @@ let AuditService = class AuditService {
         }).from(_schema.auditEvents).where(where);
         const items = await this.db.select().from(_schema.auditEvents).where(where).orderBy((0, _drizzleorm.desc)(_schema.auditEvents.occurredAt)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
         return (0, _paginationdto.paginate)(items, total, query.page, query.pageSize);
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 AuditService = _ts_decorate([

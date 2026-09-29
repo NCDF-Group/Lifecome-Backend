@@ -37,11 +37,11 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let NotificationsController = class NotificationsController {
-    constructor(notifications){
-        this.notifications = notifications;
-    }
     enqueue(body) {
         return this.notifications.enqueue(body);
+    }
+    constructor(notifications){
+        this.notifications = notifications;
     }
 };
 _ts_decorate([

@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let MessagingController = class MessagingController {
-    constructor(messaging){
-        this.messaging = messaging;
-    }
     createThread(body) {
         return this.messaging.createThread(body);
     }
@@ -50,6 +47,9 @@ let MessagingController = class MessagingController {
     }
     send(id, body) {
         return this.messaging.send(id, body);
+    }
+    constructor(messaging){
+        this.messaging = messaging;
     }
 };
 _ts_decorate([

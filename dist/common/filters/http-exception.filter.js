@@ -31,10 +31,6 @@ function _ts_metadata(metadataKey, metadataValue) {
     }
 }
 let HttpExceptionFilter = class HttpExceptionFilter {
-    constructor(logger){
-        this.logger = logger;
-        this.logger.setContext(HttpExceptionFilter.name);
-    }
     catch(exception, host) {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
@@ -108,6 +104,10 @@ let HttpExceptionFilter = class HttpExceptionFilter {
                 correlationId
             }
         };
+    }
+    constructor(logger){
+        this.logger = logger;
+        this.logger.setContext(HttpExceptionFilter.name);
     }
 };
 HttpExceptionFilter = _ts_decorate([

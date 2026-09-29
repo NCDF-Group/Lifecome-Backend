@@ -32,11 +32,6 @@ function _ts_metadata(metadataKey, metadataValue) {
     }
 }
 let HealthController = class HealthController {
-    constructor(health, database, redis){
-        this.health = health;
-        this.database = database;
-        this.redis = redis;
-    }
     /** Liveness: is the process up? No dependency calls — used for restart decisions. */ live() {
         return {
             status: 'ok'
@@ -47,6 +42,11 @@ let HealthController = class HealthController {
             ()=>this.database.check(),
             ()=>this.redis.check()
         ]);
+    }
+    constructor(health, database, redis){
+        this.health = health;
+        this.database = database;
+        this.redis = redis;
     }
 };
 _ts_decorate([

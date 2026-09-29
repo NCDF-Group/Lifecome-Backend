@@ -39,9 +39,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let NotificationsProcessor = class NotificationsProcessor extends _bullmq.WorkerHost {
-    constructor(logger, db){
-        super(), this.logger = logger, this.db = db;
-    }
     async process(job) {
         const { channel, template, recipientUserAccountId, logId } = job.data;
         try {
@@ -64,6 +61,9 @@ let NotificationsProcessor = class NotificationsProcessor extends _bullmq.Worker
             }).where((0, _drizzleorm.eq)(_schema.notificationLogs.id, logId));
             throw error;
         }
+    }
+    constructor(logger, db){
+        super(), this.logger = logger, this.db = db;
     }
 };
 NotificationsProcessor = _ts_decorate([

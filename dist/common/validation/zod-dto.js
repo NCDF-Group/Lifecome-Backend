@@ -18,16 +18,12 @@ _export(exports, {
 });
 function createZodDto(schema) {
     let AugmentedZodDto = class AugmentedZodDto {
-        static{
-            this.isZodDto = true;
-        }
-        static{
-            this.schema = schema;
-        }
         constructor(partial = {}){
             Object.assign(this, partial);
         }
     };
+    AugmentedZodDto.isZodDto = true;
+    AugmentedZodDto.schema = schema;
     return AugmentedZodDto;
 }
 function isZodDto(metatype) {

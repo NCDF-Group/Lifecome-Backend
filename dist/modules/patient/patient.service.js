@@ -38,9 +38,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PatientService = class PatientService {
-    constructor(db){
-        this.db = db;
-    }
     async createProfile(input) {
         const [created] = await this.db.insert(_schema.patients).values(input).returning();
         return created;
@@ -89,6 +86,9 @@ let PatientService = class PatientService {
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.patients.id, id)).returning();
         return updated;
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 PatientService = _ts_decorate([

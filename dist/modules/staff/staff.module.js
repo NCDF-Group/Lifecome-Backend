@@ -9,6 +9,7 @@ Object.defineProperty(exports, "StaffModule", {
     }
 });
 const _common = require("@nestjs/common");
+const _emailmodule = require("../../common/email/email.module");
 const _staffcontroller = require("./staff.controller");
 const _staffservice = require("./staff.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -28,6 +29,9 @@ let StaffModule = class StaffModule {
 };
 StaffModule = _ts_decorate([
     (0, _common.Module)({
+        imports: [
+            _emailmodule.EmailModule
+        ],
         controllers: [
             _staffcontroller.StaffController
         ],

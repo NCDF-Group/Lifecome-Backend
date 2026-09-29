@@ -38,9 +38,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ProviderDirectoryService = class ProviderDirectoryService {
-    constructor(db){
-        this.db = db;
-    }
     async list(filters) {
         const conditions = [
             (0, _drizzleorm.eq)(_schema.providers.networkStatus, 'active')
@@ -75,6 +72,9 @@ let ProviderDirectoryService = class ProviderDirectoryService {
             networkStatus
         }).where((0, _drizzleorm.eq)(_schema.providers.id, id)).returning();
         return updated;
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 ProviderDirectoryService = _ts_decorate([

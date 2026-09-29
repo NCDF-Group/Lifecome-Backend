@@ -36,11 +36,11 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let AuthController = class AuthController {
-    constructor(auth){
-        this.auth = auth;
-    }
     login(body) {
         return this.auth.login(body);
+    }
+    constructor(auth){
+        this.auth = auth;
     }
 };
 _ts_decorate([

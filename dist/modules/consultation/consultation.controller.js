@@ -36,14 +36,14 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ConsultationController = class ConsultationController {
-    constructor(consultations){
-        this.consultations = consultations;
-    }
     /** View 18 — Consultation Waiting Room. */ get(appointmentId) {
         return this.consultations.getOrCreateForAppointment(appointmentId);
     }
     /** View 19 — Video / Audio Consultation (and every waiting-room state in between). */ transition(appointmentId, body) {
         return this.consultations.transition(appointmentId, body.status);
+    }
+    constructor(consultations){
+        this.consultations = consultations;
     }
 };
 _ts_decorate([

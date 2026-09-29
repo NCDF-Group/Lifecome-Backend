@@ -85,13 +85,13 @@ function _ts_param(paramIndex, decorator) {
 const DRIZZLE = Symbol('DRIZZLE');
 const PG_CLIENT = Symbol('PG_CLIENT');
 let PgShutdown = class PgShutdown {
-    constructor(sql){
-        this.sql = sql;
-    }
     async onApplicationShutdown() {
         await this.sql.end({
             timeout: 5
         });
+    }
+    constructor(sql){
+        this.sql = sql;
     }
 };
 PgShutdown = _ts_decorate([

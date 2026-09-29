@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let SchedulingController = class SchedulingController {
-    constructor(scheduling){
-        this.scheduling = scheduling;
-    }
     /** View 13 — Choose Appointment Time. */ listAvailable(providerId) {
         return this.scheduling.listAvailable(providerId);
     }
@@ -47,6 +44,9 @@ let SchedulingController = class SchedulingController {
     }
     hold(body) {
         return this.scheduling.holdSlot(body.slotId);
+    }
+    constructor(scheduling){
+        this.scheduling = scheduling;
     }
 };
 _ts_decorate([

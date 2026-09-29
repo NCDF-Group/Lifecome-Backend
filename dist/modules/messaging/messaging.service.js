@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let MessagingService = class MessagingService {
-    constructor(db){
-        this.db = db;
-    }
     async createThread(input) {
         const [thread] = await this.db.insert(_schema.messageThreads).values(input).returning();
         return thread;
@@ -58,6 +55,9 @@ let MessagingService = class MessagingService {
     }
     listMessages(threadId) {
         return this.db.select().from(_schema.messages).where((0, _drizzleorm.eq)(_schema.messages.threadId, threadId)).orderBy((0, _drizzleorm.asc)(_schema.messages.sentAt));
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 MessagingService = _ts_decorate([

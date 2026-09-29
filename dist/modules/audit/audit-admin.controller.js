@@ -37,11 +37,11 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let AuditAdminController = class AuditAdminController {
-    constructor(audit){
-        this.audit = audit;
-    }
     list(query) {
         return this.audit.list(query);
+    }
+    constructor(audit){
+        this.audit = audit;
     }
 };
 _ts_decorate([

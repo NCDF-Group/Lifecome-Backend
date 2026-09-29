@@ -37,14 +37,14 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let BookingAdminController = class BookingAdminController {
-    constructor(booking){
-        this.booking = booking;
-    }
     list(query) {
         return this.booking.adminList(query);
     }
     get(id) {
         return this.booking.getById(id);
+    }
+    constructor(booking){
+        this.booking = booking;
     }
 };
 _ts_decorate([

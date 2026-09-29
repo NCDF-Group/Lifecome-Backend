@@ -36,10 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let DatabaseHealthIndicator = class DatabaseHealthIndicator {
-    constructor(indicators, db){
-        this.indicators = indicators;
-        this.db = db;
-    }
     async check(key = 'database') {
         const indicator = this.indicators.check(key);
         try {
@@ -50,6 +46,10 @@ let DatabaseHealthIndicator = class DatabaseHealthIndicator {
                 message: error instanceof Error ? error.message : 'unreachable'
             });
         }
+    }
+    constructor(indicators, db){
+        this.indicators = indicators;
+        this.db = db;
     }
 };
 DatabaseHealthIndicator = _ts_decorate([

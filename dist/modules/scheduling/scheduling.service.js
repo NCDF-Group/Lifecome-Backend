@@ -38,9 +38,6 @@ function _ts_param(paramIndex, decorator) {
 }
 const HOLD_MINUTES = 10;
 let SchedulingService = class SchedulingService {
-    constructor(db){
-        this.db = db;
-    }
     async listAvailable(providerId) {
         const now = new Date();
         return this.db.select().from(_schema.availabilitySlots).where((0, _drizzleorm.and)((0, _drizzleorm.eq)(_schema.availabilitySlots.providerId, providerId), (0, _drizzleorm.eq)(_schema.availabilitySlots.isBooked, false), (0, _drizzleorm.gt)(_schema.availabilitySlots.startsAt, now), (0, _drizzleorm.or)((0, _drizzleorm.isNull)(_schema.availabilitySlots.heldUntil), (0, _drizzleorm.lt)(_schema.availabilitySlots.heldUntil, now))));
@@ -80,6 +77,9 @@ let SchedulingService = class SchedulingService {
         await this.db.update(_schema.availabilitySlots).set({
             heldUntil: null
         }).where((0, _drizzleorm.eq)(_schema.availabilitySlots.id, slotId));
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 SchedulingService = _ts_decorate([

@@ -32,15 +32,15 @@ function _ts_metadata(metadataKey, metadataValue) {
     }
 }
 let AdminDashboardController = class AdminDashboardController {
-    constructor(dashboard, locations){
-        this.dashboard = dashboard;
-        this.locations = locations;
-    }
     getDashboard() {
         return this.dashboard.getSummary();
     }
     getLocations() {
         return this.locations.getOverview();
+    }
+    constructor(dashboard, locations){
+        this.dashboard = dashboard;
+        this.locations = locations;
     }
 };
 _ts_decorate([

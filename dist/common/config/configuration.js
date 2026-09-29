@@ -29,9 +29,6 @@ function _ts_metadata(metadataKey, metadataValue) {
     }
 }
 let AppConfigService = class AppConfigService {
-    constructor(config){
-        this.config = config;
-    }
     get isProduction() {
         return this.config.get('NODE_ENV', {
             infer: true
@@ -76,6 +73,34 @@ let AppConfigService = class AppConfigService {
         return this.config.get('PAYSTACK_SECRET_KEY', {
             infer: true
         });
+    }
+    get httpsmsApiKey() {
+        return this.config.get('HTTPSMS_API_KEY', {
+            infer: true
+        });
+    }
+    get httpsmsFromNumber() {
+        return this.config.get('HTTPSMS_FROM_NUMBER', {
+            infer: true
+        });
+    }
+    get brevoApiKey() {
+        return this.config.get('BREVO_API_KEY', {
+            infer: true
+        });
+    }
+    get brevoSenderEmail() {
+        return this.config.get('BREVO_SENDER_EMAIL', {
+            infer: true
+        });
+    }
+    get brevoSenderName() {
+        return this.config.get('BREVO_SENDER_NAME', {
+            infer: true
+        });
+    }
+    constructor(config){
+        this.config = config;
     }
 };
 AppConfigService = _ts_decorate([

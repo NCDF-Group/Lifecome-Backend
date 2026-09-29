@@ -30,9 +30,6 @@ function _ts_metadata(metadataKey, metadataValue) {
     }
 }
 let RolesGuard = class RolesGuard {
-    constructor(reflector){
-        this.reflector = reflector;
-    }
     canActivate(context) {
         const requiredRoles = this.reflector.getAllAndOverride(_rolesdecorator.ROLES_KEY, [
             context.getHandler(),
@@ -44,6 +41,9 @@ let RolesGuard = class RolesGuard {
             throw new _common.ForbiddenException('Your role does not have access to this.');
         }
         return true;
+    }
+    constructor(reflector){
+        this.reflector = reflector;
     }
 };
 RolesGuard = _ts_decorate([

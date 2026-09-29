@@ -37,14 +37,14 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PatientAdminController = class PatientAdminController {
-    constructor(patients){
-        this.patients = patients;
-    }
     list(query) {
         return this.patients.adminList(query);
     }
     get(id) {
         return this.patients.adminGetById(id);
+    }
+    constructor(patients){
+        this.patients = patients;
     }
 };
 _ts_decorate([

@@ -44,11 +44,11 @@ function _ts_param(paramIndex, decorator) {
 }
 const REDIS_CLIENT = Symbol('REDIS_CLIENT');
 let RedisShutdown = class RedisShutdown {
-    constructor(redis){
-        this.redis = redis;
-    }
     async onApplicationShutdown() {
         await this.redis.quit();
+    }
+    constructor(redis){
+        this.redis = redis;
     }
 };
 RedisShutdown = _ts_decorate([

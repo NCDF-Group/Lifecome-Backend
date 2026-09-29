@@ -37,14 +37,14 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PayerController = class PayerController {
-    constructor(payerService){
-        this.payerService = payerService;
-    }
     /** View 06 — Select Your HMO. LifeCome HMO may be listed first via `displayOrder`, never hard-coded. */ list() {
         return this.payerService.listParticipatingPayers();
     }
     /** View 07 — Verify HMO Membership. */ verifyMembership(body) {
         return this.payerService.verifyMembership(body.patientId, body.payerCode, body.memberId);
+    }
+    constructor(payerService){
+        this.payerService = payerService;
     }
 };
 _ts_decorate([

@@ -29,9 +29,6 @@ function _ts_metadata(metadataKey, metadataValue) {
     }
 }
 let JwtAuthGuard = class JwtAuthGuard {
-    constructor(jwt){
-        this.jwt = jwt;
-    }
     async canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const header = request.headers.authorization;
@@ -46,6 +43,9 @@ let JwtAuthGuard = class JwtAuthGuard {
         } catch  {
             throw new _common.UnauthorizedException('Your session has expired. Sign in again.');
         }
+    }
+    constructor(jwt){
+        this.jwt = jwt;
     }
 };
 JwtAuthGuard = _ts_decorate([

@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PaymentController = class PaymentController {
-    constructor(payments){
-        this.payments = payments;
-    }
     /** View 16 — Payment / HMO Authorisation (direct-pay branch). */ createIntent(body) {
         return this.payments.createIntent(body);
     }
@@ -51,6 +48,9 @@ let PaymentController = class PaymentController {
     }
     refund(id) {
         return this.payments.refund(id);
+    }
+    constructor(payments){
+        this.payments = payments;
     }
 };
 _ts_decorate([

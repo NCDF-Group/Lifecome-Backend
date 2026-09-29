@@ -37,11 +37,11 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ConsentAdminController = class ConsentAdminController {
-    constructor(consent){
-        this.consent = consent;
-    }
     list(query) {
         return this.consent.adminList(query);
+    }
+    constructor(consent){
+        this.consent = consent;
     }
 };
 _ts_decorate([

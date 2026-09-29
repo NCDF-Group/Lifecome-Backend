@@ -40,10 +40,6 @@ function _ts_param(paramIndex, decorator) {
 }
 const RETRY_ATTEMPTS = 5;
 let NotificationsService = class NotificationsService {
-    constructor(queue, db){
-        this.queue = queue;
-        this.db = db;
-    }
     async enqueue(input) {
         const [log] = await this.db.insert(_schema.notificationLogs).values({
             recipientUserAccountId: input.recipientUserAccountId,
@@ -86,6 +82,10 @@ let NotificationsService = class NotificationsService {
             recipientEmail: _schema.userAccounts.email
         }).from(_schema.notificationLogs).innerJoin(_schema.userAccounts, (0, _drizzleorm.eq)(_schema.notificationLogs.recipientUserAccountId, _schema.userAccounts.id)).where(where).orderBy((0, _drizzleorm.desc)(_schema.notificationLogs.createdAt)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
         return (0, _paginationdto.paginate)(items, total, query.page, query.pageSize);
+    }
+    constructor(queue, db){
+        this.queue = queue;
+        this.db = db;
     }
 };
 NotificationsService = _ts_decorate([

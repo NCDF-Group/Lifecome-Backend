@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ProviderAdminController = class ProviderAdminController {
-    constructor(directory){
-        this.directory = directory;
-    }
     list(query) {
         return this.directory.adminList(query);
     }
@@ -48,6 +45,9 @@ let ProviderAdminController = class ProviderAdminController {
     }
     updateNetworkStatus(id, body) {
         return this.directory.setNetworkStatus(id, body.networkStatus);
+    }
+    constructor(directory){
+        this.directory = directory;
     }
 };
 _ts_decorate([

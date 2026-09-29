@@ -38,9 +38,6 @@ function _ts_param(paramIndex, decorator) {
 const TREND_DAYS = 14;
 const NEW_PATIENT_DAYS = 30;
 let AdminDashboardService = class AdminDashboardService {
-    constructor(db){
-        this.db = db;
-    }
     async getSummary() {
         const [[{ patientCount }], [{ activeProviderCount }], [{ bookingCount }], [{ successfulCount, successfulAmountKobo }], bookingsByStatusRows, paymentsByStatusRows, bookingsTrend, byMarket] = await Promise.all([
             this.db.select({
@@ -140,6 +137,9 @@ let AdminDashboardService = class AdminDashboardService {
                 date: row.date,
                 count: row.total
             }));
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 AdminDashboardService = _ts_decorate([

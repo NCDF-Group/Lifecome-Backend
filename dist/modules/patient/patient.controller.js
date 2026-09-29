@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PatientController = class PatientController {
-    constructor(patients){
-        this.patients = patients;
-    }
     /** View 03 — Patient Profile (creation). */ create(body) {
         return this.patients.createProfile(body);
     }
@@ -47,6 +44,9 @@ let PatientController = class PatientController {
     }
     update(id, body) {
         return this.patients.update(id, body);
+    }
+    constructor(patients){
+        this.patients = patients;
     }
 };
 _ts_decorate([

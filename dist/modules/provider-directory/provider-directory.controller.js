@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ProviderDirectoryController = class ProviderDirectoryController {
-    constructor(directory){
-        this.directory = directory;
-    }
     /** View 11 — Find a Doctor. */ list(query) {
         return this.directory.list({
             specialty: query.specialty
@@ -49,6 +46,9 @@ let ProviderDirectoryController = class ProviderDirectoryController {
     }
     /** Provider onboarding (operations console, once built). */ create(body) {
         return this.directory.create(body);
+    }
+    constructor(directory){
+        this.directory = directory;
     }
 };
 _ts_decorate([

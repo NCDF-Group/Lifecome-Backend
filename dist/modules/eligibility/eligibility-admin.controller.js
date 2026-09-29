@@ -37,11 +37,11 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let EligibilityAdminController = class EligibilityAdminController {
-    constructor(eligibility){
-        this.eligibility = eligibility;
-    }
     list(query) {
         return this.eligibility.adminList(query);
+    }
+    constructor(eligibility){
+        this.eligibility = eligibility;
     }
 };
 _ts_decorate([

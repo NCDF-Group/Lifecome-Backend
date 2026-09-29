@@ -83,9 +83,6 @@ function _ts_param(paramIndex, decorator) {
     ended: []
 };
 let ConsultationService = class ConsultationService {
-    constructor(db){
-        this.db = db;
-    }
     async getOrCreateForAppointment(appointmentId) {
         const [existing] = await this.db.select().from(_schema.consultationSessions).where((0, _drizzleorm.eq)(_schema.consultationSessions.appointmentId, appointmentId));
         if (existing) return existing;
@@ -110,6 +107,9 @@ let ConsultationService = class ConsultationService {
         const [updated] = await this.db.update(_schema.consultationSessions).set(patch).where((0, _drizzleorm.eq)(_schema.consultationSessions.id, session.id)).returning();
         if (!updated) throw new _appexception.NotFoundAppException('Consultation session');
         return updated;
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 ConsultationService = _ts_decorate([

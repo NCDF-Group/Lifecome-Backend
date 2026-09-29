@@ -37,11 +37,11 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let NotificationsAdminController = class NotificationsAdminController {
-    constructor(notifications){
-        this.notifications = notifications;
-    }
     list(query) {
         return this.notifications.adminList(query);
+    }
+    constructor(notifications){
+        this.notifications = notifications;
     }
 };
 _ts_decorate([

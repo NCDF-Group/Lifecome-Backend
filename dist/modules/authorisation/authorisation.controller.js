@@ -37,14 +37,14 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let AuthorisationController = class AuthorisationController {
-    constructor(authorisationService){
-        this.authorisationService = authorisationService;
-    }
     request(body) {
         return this.authorisationService.request(body);
     }
     status(id) {
         return this.authorisationService.refreshStatus(id);
+    }
+    constructor(authorisationService){
+        this.authorisationService = authorisationService;
     }
 };
 _ts_decorate([

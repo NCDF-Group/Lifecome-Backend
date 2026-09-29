@@ -36,11 +36,11 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let EligibilityController = class EligibilityController {
-    constructor(eligibility){
-        this.eligibility = eligibility;
-    }
     /** View 09 — Check Service Eligibility. */ check(body) {
         return this.eligibility.check(body.membershipId, body.clinicalServiceCode);
+    }
+    constructor(eligibility){
+        this.eligibility = eligibility;
     }
 };
 _ts_decorate([

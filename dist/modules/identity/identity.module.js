@@ -9,6 +9,7 @@ Object.defineProperty(exports, "IdentityModule", {
     }
 });
 const _common = require("@nestjs/common");
+const _smsmodule = require("../../common/sms/sms.module");
 const _identitycontroller = require("./identity.controller");
 const _identityservice = require("./identity.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -28,6 +29,9 @@ let IdentityModule = class IdentityModule {
 };
 IdentityModule = _ts_decorate([
     (0, _common.Module)({
+        imports: [
+            _smsmodule.SmsModule
+        ],
         controllers: [
             _identitycontroller.IdentityController
         ],

@@ -35,10 +35,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let RedisHealthIndicator = class RedisHealthIndicator {
-    constructor(indicators, redis){
-        this.indicators = indicators;
-        this.redis = redis;
-    }
     async check(key = 'redis') {
         const indicator = this.indicators.check(key);
         try {
@@ -49,6 +45,10 @@ let RedisHealthIndicator = class RedisHealthIndicator {
                 message: error instanceof Error ? error.message : 'unreachable'
             });
         }
+    }
+    constructor(indicators, redis){
+        this.indicators = indicators;
+        this.redis = redis;
     }
 };
 RedisHealthIndicator = _ts_decorate([

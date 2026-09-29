@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ConsentController = class ConsentController {
-    constructor(consent){
-        this.consent = consent;
-    }
     grant(body) {
         return this.consent.grant(body);
     }
@@ -47,6 +44,9 @@ let ConsentController = class ConsentController {
     }
     list(patientId) {
         return this.consent.list(patientId);
+    }
+    constructor(consent){
+        this.consent = consent;
     }
 };
 _ts_decorate([

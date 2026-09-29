@@ -38,9 +38,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ConsentService = class ConsentService {
-    constructor(db){
-        this.db = db;
-    }
     async grant(input) {
         const [record] = await this.db.insert(_schema.consentRecords).values(input).returning();
         return record;
@@ -76,6 +73,9 @@ let ConsentService = class ConsentService {
             id: _schema.consentRecords.id
         }).from(_schema.consentRecords).where((0, _drizzleorm.and)((0, _drizzleorm.eq)(_schema.consentRecords.patientId, patientId), (0, _drizzleorm.eq)(_schema.consentRecords.consentType, consentType), (0, _drizzleorm.isNull)(_schema.consentRecords.revokedAt))).limit(1);
         return Boolean(record);
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 ConsentService = _ts_decorate([

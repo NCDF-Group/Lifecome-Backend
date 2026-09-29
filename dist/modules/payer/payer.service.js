@@ -39,11 +39,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PayerService = class PayerService {
-    constructor(db, registry, audit){
-        this.db = db;
-        this.registry = registry;
-        this.audit = audit;
-    }
     /**
    * Live payers only, in `displayOrder` — the field a product decision (e.g. "list LifeCome HMO
    * first") lives in, never in code (blueprint §9.1, §21).
@@ -86,6 +81,11 @@ let PayerService = class PayerService {
             throw new _appexception.AppException('PAYER_NOT_AVAILABLE', 'This payer is not currently available. You can pay directly instead.', 422);
         }
         return payer;
+    }
+    constructor(db, registry, audit){
+        this.db = db;
+        this.registry = registry;
+        this.audit = audit;
     }
 };
 PayerService = _ts_decorate([

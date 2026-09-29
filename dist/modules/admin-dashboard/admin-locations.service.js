@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let AdminLocationsService = class AdminLocationsService {
-    constructor(db){
-        this.db = db;
-    }
     async getOverview() {
         const [patientRows, providerRows, [{ unregisteredPatients }], [{ unregisteredProviders }]] = await Promise.all([
             this.db.select({
@@ -94,6 +91,9 @@ let AdminLocationsService = class AdminLocationsService {
                 providers: unregisteredProviders
             }
         };
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 AdminLocationsService = _ts_decorate([

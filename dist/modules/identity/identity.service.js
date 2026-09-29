@@ -16,6 +16,7 @@ const _client = require("../../db/client");
 const _schema = require("../../db/schema");
 const _configuration = require("../../common/config/configuration");
 const _appexception = require("../../common/errors/app-exception");
+const _smsservice = require("../../common/sms/sms.service");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") {
@@ -42,11 +43,6 @@ function _ts_param(paramIndex, decorator) {
 const OTP_TTL_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
 let IdentityService = class IdentityService {
-    constructor(db, config, logger){
-        this.db = db;
-        this.config = config;
-        this.logger = logger;
-    }
     /** Idempotent: registering an already-known phone number returns the existing account. */ async register(phoneNumber) {
         const [existing] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.phoneNumber, phoneNumber));
         if (existing) {
@@ -60,6 +56,8 @@ let IdentityService = class IdentityService {
         return created;
     }
     async requestOtp(userAccountId) {
+        const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId));
+        if (!account) throw new _appexception.NotFoundAppException('User account');
         const code = String((0, _nodecrypto.randomInt)(0, 1_000_000)).padStart(6, '0');
         const codeHash = this.hashCode(code);
         const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
@@ -69,13 +67,19 @@ let IdentityService = class IdentityService {
             purpose: 'phone_verification',
             expiresAt
         });
-        // No SMS provider is configured in this scaffold (see .env.example — TERMII_API_KEY).
-        // Never log a live OTP in production; in development this is how you retrieve it to test with.
+        // SmsService no-ops (and just logs) when HTTPSMS_API_KEY/HTTPSMS_FROM_NUMBER aren't set — see
+        // its own doc comment for why a failed/unconfigured send never blocks this request.
+        await this.sms.send({
+            to: account.phoneNumber,
+            body: `Your LifeCome Live verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`
+        });
+        // Never log a live OTP in production; in development this is how you retrieve it without a
+        // phone attached (see SmsService for the equivalent behind HTTPSMS_API_KEY).
         if (!this.config.isProduction) {
             this.logger.debug({
                 userAccountId,
                 code
-            }, 'OTP generated (development only — not sent via SMS)');
+            }, 'OTP generated (development only — logged regardless of SMS delivery)');
         }
         return {
             expiresAt
@@ -111,15 +115,22 @@ let IdentityService = class IdentityService {
     hashCode(code) {
         return (0, _nodecrypto.createHash)('sha256').update(`${code}:${this.config.sessionJwtSecret}`).digest('hex');
     }
+    constructor(db, config, sms, logger){
+        this.db = db;
+        this.config = config;
+        this.sms = sms;
+        this.logger = logger;
+    }
 };
 IdentityService = _ts_decorate([
     (0, _common.Injectable)(),
     _ts_param(0, (0, _common.Inject)(_client.DRIZZLE)),
-    _ts_param(2, (0, _nestjspino.InjectPinoLogger)(IdentityService.name)),
+    _ts_param(3, (0, _nestjspino.InjectPinoLogger)(IdentityService.name)),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         typeof Database === "undefined" ? Object : Database,
         typeof _configuration.AppConfigService === "undefined" ? Object : _configuration.AppConfigService,
+        typeof _smsservice.SmsService === "undefined" ? Object : _smsservice.SmsService,
         typeof _nestjspino.PinoLogger === "undefined" ? Object : _nestjspino.PinoLogger
     ])
 ], IdentityService);

@@ -41,11 +41,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PaymentService = class PaymentService {
-    constructor(db, booking, audit){
-        this.db = db;
-        this.booking = booking;
-        this.audit = audit;
-    }
     async createIntent(input) {
         const [service] = await this.db.select().from(_schema.clinicalServices).where((0, _drizzleorm.eq)(_schema.clinicalServices.id, input.clinicalServiceId));
         if (!service) throw new _appexception.NotFoundAppException('Clinical service');
@@ -123,6 +118,11 @@ let PaymentService = class PaymentService {
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.paymentTransactions.id, id)).returning();
         return updated;
+    }
+    constructor(db, booking, audit){
+        this.db = db;
+        this.booking = booking;
+        this.audit = audit;
     }
 };
 PaymentService = _ts_decorate([

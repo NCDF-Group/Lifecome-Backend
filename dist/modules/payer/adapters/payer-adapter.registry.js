@@ -30,10 +30,6 @@ function _ts_metadata(metadataKey, metadataValue) {
     }
 }
 let PayerAdapterRegistry = class PayerAdapterRegistry {
-    constructor(fakePayerAdapter){
-        this.adapters = new Map();
-        this.register(fakePayerAdapter);
-    }
     register(adapter) {
         this.adapters.set(adapter.payerCode, adapter);
     }
@@ -43,6 +39,10 @@ let PayerAdapterRegistry = class PayerAdapterRegistry {
             throw new _appexception.AppException('PAYER_ADAPTER_NOT_CONFIGURED', 'This payer is not yet connected. Please pay directly, or try again later.', 502);
         }
         return adapter;
+    }
+    constructor(fakePayerAdapter){
+        this.adapters = new Map();
+        this.register(fakePayerAdapter);
     }
 };
 PayerAdapterRegistry = _ts_decorate([

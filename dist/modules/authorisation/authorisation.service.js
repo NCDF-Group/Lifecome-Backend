@@ -39,11 +39,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let AuthorisationService = class AuthorisationService {
-    constructor(db, registry, audit){
-        this.db = db;
-        this.registry = registry;
-        this.audit = audit;
-    }
     async request(input) {
         const [eligibilityCheck] = await this.db.select().from(_schema.eligibilityChecks).where((0, _drizzleorm.eq)(_schema.eligibilityChecks.id, input.eligibilityCheckId));
         if (!eligibilityCheck) throw new _appexception.NotFoundAppException('Eligibility check');
@@ -91,6 +86,11 @@ let AuthorisationService = class AuthorisationService {
             decidedAt: result.status === 'pending' ? null : new Date()
         }).where((0, _drizzleorm.eq)(_schema.authorisations.id, authorisationId)).returning();
         return updated;
+    }
+    constructor(db, registry, audit){
+        this.db = db;
+        this.registry = registry;
+        this.audit = audit;
     }
 };
 AuthorisationService = _ts_decorate([

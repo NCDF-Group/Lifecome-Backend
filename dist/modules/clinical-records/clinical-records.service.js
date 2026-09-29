@@ -38,10 +38,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ClinicalRecordsService = class ClinicalRecordsService {
-    constructor(db, audit){
-        this.db = db;
-        this.audit = audit;
-    }
     async createEncounter(input) {
         const [encounter] = await this.db.insert(_schema.encounters).values(input).returning();
         return encounter;
@@ -145,6 +141,10 @@ let ClinicalRecordsService = class ClinicalRecordsService {
         }).where((0, _drizzleorm.eq)(_schema.diagnosticResults.id, resultId)).returning();
         if (!updated) throw new _appexception.NotFoundAppException('Diagnostic result');
         return updated;
+    }
+    constructor(db, audit){
+        this.db = db;
+        this.audit = audit;
     }
 };
 ClinicalRecordsService = _ts_decorate([

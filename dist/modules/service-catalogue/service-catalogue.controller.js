@@ -36,14 +36,14 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ServiceCatalogueController = class ServiceCatalogueController {
-    constructor(catalogue){
-        this.catalogue = catalogue;
-    }
     list() {
         return this.catalogue.list();
     }
     create(body) {
         return this.catalogue.create(body);
+    }
+    constructor(catalogue){
+        this.catalogue = catalogue;
     }
 };
 _ts_decorate([

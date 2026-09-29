@@ -40,11 +40,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let EligibilityService = class EligibilityService {
-    constructor(db, registry, audit){
-        this.db = db;
-        this.registry = registry;
-        this.audit = audit;
-    }
     async check(membershipId, clinicalServiceCode) {
         const [membership] = await this.db.select().from(_schema.memberships).where((0, _drizzleorm.eq)(_schema.memberships.id, membershipId));
         if (!membership) throw new _appexception.NotFoundAppException('Membership');
@@ -91,6 +86,11 @@ let EligibilityService = class EligibilityService {
             serviceName: _schema.clinicalServices.name
         }).from(_schema.eligibilityChecks).innerJoin(_schema.memberships, (0, _drizzleorm.eq)(_schema.eligibilityChecks.membershipId, _schema.memberships.id)).innerJoin(_schema.patients, (0, _drizzleorm.eq)(_schema.memberships.patientId, _schema.patients.id)).innerJoin(_schema.payers, (0, _drizzleorm.eq)(_schema.memberships.payerId, _schema.payers.id)).innerJoin(_schema.clinicalServices, (0, _drizzleorm.eq)(_schema.eligibilityChecks.clinicalServiceId, _schema.clinicalServices.id)).where(where).orderBy((0, _drizzleorm.desc)(_schema.eligibilityChecks.checkedAt)).limit(query.pageSize).offset((query.page - 1) * query.pageSize);
         return (0, _paginationdto.paginate)(items, total, query.page, query.pageSize);
+    }
+    constructor(db, registry, audit){
+        this.db = db;
+        this.registry = registry;
+        this.audit = audit;
     }
 };
 EligibilityService = _ts_decorate([

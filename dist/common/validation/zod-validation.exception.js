@@ -9,12 +9,12 @@ Object.defineProperty(exports, "ZodValidationException", {
     }
 });
 let ZodValidationException = class ZodValidationException extends Error {
+    getZodError() {
+        return this.zodError;
+    }
     constructor(zodError){
         super('Validation failed'), this.zodError = zodError;
         this.name = 'ZodValidationException';
-    }
-    getZodError() {
-        return this.zodError;
     }
 };
 

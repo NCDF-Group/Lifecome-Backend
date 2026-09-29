@@ -45,6 +45,16 @@ const envSchema = _zod.z.object({
     PAYSTACK_SECRET_KEY: _zod.z.string().optional(),
     FLUTTERWAVE_SECRET_KEY: _zod.z.string().optional(),
     TERMII_API_KEY: _zod.z.string().optional(),
+    // OTP delivery via httpSMS (httpsms.com) — see common/sms/sms.service.ts. Both must be set
+    // together; without them, OTP requests just log the code instead of sending it.
+    HTTPSMS_API_KEY: _zod.z.string().optional(),
+    HTTPSMS_FROM_NUMBER: _zod.z.string().optional(),
+    // Transactional email via Brevo (brevo.com) — see common/email/email.service.ts. Both must be
+    // set together; without them, emails just log instead of sending. BREVO_SENDER_EMAIL must be a
+    // verified sender in the Brevo account (Settings → Senders).
+    BREVO_API_KEY: _zod.z.string().optional(),
+    BREVO_SENDER_EMAIL: _zod.z.string().optional(),
+    BREVO_SENDER_NAME: _zod.z.string().default('LifeCome Live'),
     LIVEKIT_API_KEY: _zod.z.string().optional(),
     LIVEKIT_API_SECRET: _zod.z.string().optional(),
     LIVEKIT_URL: _zod.z.string().optional()

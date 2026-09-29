@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let BookingController = class BookingController {
-    constructor(booking){
-        this.booking = booking;
-    }
     create(body) {
         return this.booking.create(body);
     }
@@ -51,6 +48,9 @@ let BookingController = class BookingController {
     }
     cancel(id) {
         return this.booking.cancel(id);
+    }
+    constructor(booking){
+        this.booking = booking;
     }
 };
 _ts_decorate([

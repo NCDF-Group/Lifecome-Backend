@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let DocumentsService = class DocumentsService {
-    constructor(db){
-        this.db = db;
-    }
     async create(input) {
         const [document] = await this.db.insert(_schema.documents).values(input).returning();
         return document;
@@ -55,6 +52,9 @@ let DocumentsService = class DocumentsService {
     async getSignedDownloadUrl(id) {
         await this.getById(id); // 404s if the document does not exist
         throw new _appexception.NotImplementedAppException('Signed document URLs (no object storage provider is configured yet)');
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 DocumentsService = _ts_decorate([

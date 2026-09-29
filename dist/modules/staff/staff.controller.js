@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let StaffController = class StaffController {
-    constructor(staff){
-        this.staff = staff;
-    }
     // The `me` routes are declared before `:id` so `me` is never parsed as an id. Any signed-in staff
     // member can use them on their own account, whatever their role.
     me(staff) {
@@ -75,6 +72,9 @@ let StaffController = class StaffController {
     }
     update(id, body) {
         return this.staff.update(id, body);
+    }
+    constructor(staff){
+        this.staff = staff;
     }
 };
 _ts_decorate([

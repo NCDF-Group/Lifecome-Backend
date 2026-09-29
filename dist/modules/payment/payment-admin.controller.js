@@ -37,14 +37,14 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let PaymentAdminController = class PaymentAdminController {
-    constructor(payments){
-        this.payments = payments;
-    }
     list(query) {
         return this.payments.adminList(query);
     }
     get(id) {
         return this.payments.getById(id);
+    }
+    constructor(payments){
+        this.payments = payments;
     }
 };
 _ts_decorate([

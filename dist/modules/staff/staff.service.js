@@ -11,6 +11,7 @@ Object.defineProperty(exports, "StaffService", {
 const _common = require("@nestjs/common");
 const _drizzleorm = require("drizzle-orm");
 const _paginationdto = require("../../common/dto/pagination.dto");
+const _emailservice = require("../../common/email/email.service");
 const _appexception = require("../../common/errors/app-exception");
 const _password = require("../../common/security/password");
 const _client = require("../../db/client");
@@ -47,9 +48,6 @@ function toSummary(account) {
     return summary;
 }
 let StaffService = class StaffService {
-    constructor(db){
-        this.db = db;
-    }
     async create(input) {
         const [existing] = await this.db.select().from(_schema.staffAccounts).where((0, _drizzleorm.eq)(_schema.staffAccounts.email, input.email));
         if (existing) {
@@ -62,6 +60,13 @@ let StaffService = class StaffService {
             fullName: input.fullName,
             role: input.role
         }).returning();
+        // Deliberately no password in this email — whoever created the account already set it and
+        // shares it with the new staff member directly. EmailService no-ops if Brevo isn't configured.
+        await this.email.send({
+            to: created.email,
+            subject: 'Your LifeCome Live operations console account',
+            html: `<p>Hi ${escapeHtml(created.fullName)},</p><p>An operations console account was created for you at LifeCome Live, with the role of <strong>${escapeHtml(created.role)}</strong>.</p><p>Sign in with this email address and the password you were given.</p>`
+        });
         return toSummary(created);
     }
     async list(query) {
@@ -163,15 +168,25 @@ let StaffService = class StaffService {
         }).where((0, _drizzleorm.eq)(_schema.staffAccounts.id, account.id)).returning();
         return toSummary(updated);
     }
+    constructor(db, email){
+        this.db = db;
+        this.email = email;
+    }
 };
 StaffService = _ts_decorate([
     (0, _common.Injectable)(),
     _ts_param(0, (0, _common.Inject)(_client.DRIZZLE)),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
-        typeof Database === "undefined" ? Object : Database
+        typeof Database === "undefined" ? Object : Database,
+        typeof _emailservice.EmailService === "undefined" ? Object : _emailservice.EmailService
     ])
 ], StaffService);
+/** Minimal escaping for values interpolated into the welcome email's HTML (a staff member's own
+ * full name/role, not untrusted external input, but cheap insurance against a stray `<` breaking
+ * the markup or rendering as a tag in the recipient's mail client). */ function escapeHtml(value) {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 /** Checks the file's leading "magic" bytes against its declared type. */ function matchesImageType(image, contentType) {
     switch(contentType){
         case 'image/jpeg':

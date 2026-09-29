@@ -43,10 +43,6 @@ const CANCELLABLE_STATUSES = [
     'confirmed'
 ];
 let BookingService = class BookingService {
-    constructor(db, scheduling){
-        this.db = db;
-        this.scheduling = scheduling;
-    }
     /** View 15 — Review Booking & Payment (the appointment is created in `slot_held` state here). */ async create(input) {
         // Re-asserts the hold; throws SLOT_UNAVAILABLE if it has expired or was taken meanwhile.
         await this.scheduling.holdSlot(input.availabilitySlotId);
@@ -103,6 +99,10 @@ let BookingService = class BookingService {
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.appointments.id, id)).returning();
         return updated;
+    }
+    constructor(db, scheduling){
+        this.db = db;
+        this.scheduling = scheduling;
     }
 };
 BookingService = _ts_decorate([

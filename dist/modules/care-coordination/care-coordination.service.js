@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let CareCoordinationService = class CareCoordinationService {
-    constructor(db){
-        this.db = db;
-    }
     async create(input) {
         const [task] = await this.db.insert(_schema.careTasks).values({
             ...input,
@@ -60,6 +57,9 @@ let CareCoordinationService = class CareCoordinationService {
         }).where((0, _drizzleorm.eq)(_schema.careTasks.id, id)).returning();
         if (!updated) throw new _appexception.NotFoundAppException('Care task');
         return updated;
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 CareCoordinationService = _ts_decorate([

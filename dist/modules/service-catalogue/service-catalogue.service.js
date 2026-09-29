@@ -37,9 +37,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ServiceCatalogueService = class ServiceCatalogueService {
-    constructor(db){
-        this.db = db;
-    }
     list() {
         return this.db.select().from(_schema.clinicalServices).where((0, _drizzleorm.eq)(_schema.clinicalServices.isActive, true));
     }
@@ -51,6 +48,9 @@ let ServiceCatalogueService = class ServiceCatalogueService {
     async create(input) {
         const [created] = await this.db.insert(_schema.clinicalServices).values(input).returning();
         return created;
+    }
+    constructor(db){
+        this.db = db;
     }
 };
 ServiceCatalogueService = _ts_decorate([

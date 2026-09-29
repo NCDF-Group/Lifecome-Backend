@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let DocumentsController = class DocumentsController {
-    constructor(documents){
-        this.documents = documents;
-    }
     create(body) {
         return this.documents.create(body);
     }
@@ -47,6 +44,9 @@ let DocumentsController = class DocumentsController {
     }
     signedUrl(id) {
         return this.documents.getSignedDownloadUrl(id);
+    }
+    constructor(documents){
+        this.documents = documents;
     }
 };
 _ts_decorate([

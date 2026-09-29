@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let ClinicalRecordsController = class ClinicalRecordsController {
-    constructor(records){
-        this.records = records;
-    }
     createEncounter(body) {
         return this.records.createEncounter(body);
     }
@@ -71,6 +68,9 @@ let ClinicalRecordsController = class ClinicalRecordsController {
     }
     /** View 21 — Health Records (a diagnostic result's clinician-review status). */ reviewDiagnosticResult(id, body) {
         return this.records.reviewDiagnosticResult(id, body.reviewedByProviderId);
+    }
+    constructor(records){
+        this.records = records;
     }
 };
 _ts_decorate([

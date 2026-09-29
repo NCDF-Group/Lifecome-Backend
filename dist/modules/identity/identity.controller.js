@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let IdentityController = class IdentityController {
-    constructor(identity){
-        this.identity = identity;
-    }
     /** View 01 — Sign In / Create Account. Also sends the first OTP. */ register(body) {
         return this.identity.register(body.phoneNumber);
     }
@@ -47,6 +44,9 @@ let IdentityController = class IdentityController {
     }
     /** View 02 — Verify Mobile Number. */ verifyOtp(body) {
         return this.identity.verifyOtp(body.userAccountId, body.code);
+    }
+    constructor(identity){
+        this.identity = identity;
     }
 };
 _ts_decorate([

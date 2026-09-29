@@ -36,9 +36,6 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let CareCoordinationController = class CareCoordinationController {
-    constructor(careCoordination){
-        this.careCoordination = careCoordination;
-    }
     create(body) {
         return this.careCoordination.create(body);
     }
@@ -50,6 +47,9 @@ let CareCoordinationController = class CareCoordinationController {
     }
     complete(id) {
         return this.careCoordination.complete(id);
+    }
+    constructor(careCoordination){
+        this.careCoordination = careCoordination;
     }
 };
 _ts_decorate([
