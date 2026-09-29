@@ -1,0 +1,51 @@
+name: lifecome-backend
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lifecome
+      POSTGRES_PASSWORD: lifecome
+      POSTGRES_DB: lifecome_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifecome -d lifecome_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Uncomment to run the API itself in Docker too (defaults to hitting the services above).
+  # api:
+  #   build: .
+  #   env_file: .env
+  #   environment:
+  #     DATABASE_URL: postgres://lifecome:lifecome@postgres:5432/lifecome_dev
+  #     REDIS_URL: redis://redis:6379
+  #   ports:
+  #     - "3001:3001"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:

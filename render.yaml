@@ -1,0 +1,54 @@
+databases:
+  - name: lifecome-db
+    plan: free
+    databaseName: lifecome_dev
+    user: lifecome
+
+services:
+  - name: lifecome-redis
+    type: keyvalue
+    plan: free
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: everywhere (Render's own network - restrict this if you outgrow the free plan)
+
+  - name: lifecome-backend
+    type: web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    plan: free
+    healthCheckPath: /api/v1/health/live
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: DATABASE_URL
+        fromDatabase:
+          name: lifecome-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: lifecome-redis
+          property: connectionString
+      # The deployed Lifecome-admin (and Lifecome-web) origin(s), comma-separated - fill in after
+      # that's deployed. Not needed for Lifecome-admin's own requests (those run server-side, not
+      # from its browser), but Lifecome-web's client-side calls do need it.
+      - key: CORS_ORIGIN
+        sync: false
+      # Auto-generated, unique per environment - never the "dev-only-change-me" placeholder from
+      # .env.example.
+      - key: SESSION_JWT_SECRET
+        generateValue: true
+      - key: STAFF_JWT_SECRET
+        generateValue: true
+      # Used once by `npm run db:seed:staff`, not by the running app - see the deploy guide in
+      # README.md for running that as a one-off Shell command after the first deploy.
+      - key: SEED_ADMIN_EMAIL
+        sync: false
+      - key: SEED_ADMIN_PASSWORD
+        sync: false
+      - key: SEED_ADMIN_NAME
+        sync: false

@@ -1,0 +1,2 @@
+Generated SQL migrations live here after running `npm run db:generate`. The folder is
+committed once it has content — migrations are part of the source history, not build output.
