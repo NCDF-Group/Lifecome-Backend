@@ -5,14 +5,15 @@ import 'dotenv/config';
  * interval and logs the result - nothing here is part of the Nest app itself (same reasoning as
  * `db/migrate.ts`: a plain script, no DI container needed).
  *
- * The usual reason to run this is Render's free web service plan, which spins down after 15
- * minutes with no incoming request - a periodic ping is a real request and keeps it warm. For that
- * purpose, this needs to run somewhere that's itself always on (your own machine won't help once
- * it's asleep or off); a free external uptime pinger (e.g. UptimeRobot, cron-job.org) or a small
- * always-on box calling `PING_URL` will do the same job, usually at a much longer interval - every
- * 10 seconds is far more often than the 15-minute window needs, and adds load/log volume for no
- * extra benefit. This script uses 10s only because that's what was asked for; override with
- * PING_INTERVAL_MS if you want something gentler.
+ * Superseded for its original purpose (stopping Render's free plan from spinning the service down
+ * after 15 minutes idle) by `common/keep-alive/self-ping.ts`, which does the same real-HTTP-request
+ * trick but *from inside the deployed app itself* - it runs for as long as the service is up, with
+ * no separate always-on machine required. Running this script from your own laptop only keeps the
+ * service warm while your laptop is awake and this is running in a terminal, which defeats the
+ * purpose the moment you close the lid.
+ *
+ * Still useful as a manual, watch-the-output diagnostic (e.g. "is the deployed API actually
+ * responding right now") - just not as the thing keeping it awake anymore.
  */
 const PING_URL = process.env.PING_URL ?? `http://localhost:${process.env.PORT ?? 3001}/api/v1/health/live`;
 const INTERVAL_MS = Number(process.env.PING_INTERVAL_MS ?? 10_000);

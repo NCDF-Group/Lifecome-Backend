@@ -3,6 +3,7 @@ import { and, count, desc, eq } from 'drizzle-orm';
 
 import { paginate, type PaginatedResult } from '../../common/dto/pagination.dto';
 import { EmailService } from '../../common/email/email.service';
+import { escapeHtml, renderEmailLayout } from '../../common/email/templates';
 import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
 import { hashPassword, verifyPassword } from '../../common/security/password';
 import { DRIZZLE, type Database } from '../../db/client';
@@ -53,7 +54,14 @@ export class StaffService {
     await this.email.send({
       to: created.email,
       subject: 'Your LifeCome Live operations console account',
-      html: `<p>Hi ${escapeHtml(created.fullName)},</p><p>An operations console account was created for you at LifeCome Live, with the role of <strong>${escapeHtml(created.role)}</strong>.</p><p>Sign in with this email address and the password you were given.</p>`,
+      html: renderEmailLayout({
+        heading: 'Your console account is ready',
+        bodyHtml: `
+          <p style="margin:0 0 16px 0;">Hi ${escapeHtml(created.fullName)},</p>
+          <p style="margin:0 0 16px 0;">An operations console account was created for you at LifeCome Live, with the role of <strong>${escapeHtml(created.role)}</strong>.</p>
+          <p style="margin:0;">Sign in with this email address and the password you were given.</p>
+        `,
+      }),
     });
 
     return toSummary(created);
@@ -179,13 +187,6 @@ export class StaffService {
 
     return toSummary(updated);
   }
-}
-
-/** Minimal escaping for values interpolated into the welcome email's HTML (a staff member's own
- * full name/role, not untrusted external input, but cheap insurance against a stray `<` breaking
- * the markup or rendering as a tag in the recipient's mail client). */
-function escapeHtml(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /** Checks the file's leading "magic" bytes against its declared type. */

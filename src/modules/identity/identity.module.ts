@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { SmsModule } from '../../common/sms/sms.module';
+import { EmailModule } from '../../common/email/email.module';
 import { IdentityController } from './identity.controller';
 import { IdentityService } from './identity.service';
 
 @Module({
-  imports: [SmsModule],
+  imports: [EmailModule],
   controllers: [IdentityController],
   providers: [IdentityService],
   exports: [IdentityService],

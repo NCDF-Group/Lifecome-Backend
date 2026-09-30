@@ -11,8 +11,8 @@ export type Patient = typeof patients.$inferSelect;
 
 /** A patient row joined with its account's contact details — what the admin console lists. */
 export type AdminPatientRow = Patient & {
-  phoneNumber: string;
-  email: string | null;
+  phoneNumber: string | null;
+  email: string;
   accountStatus: string;
 };
 

@@ -12,6 +12,7 @@ const _common = require("@nestjs/common");
 const _drizzleorm = require("drizzle-orm");
 const _paginationdto = require("../../common/dto/pagination.dto");
 const _emailservice = require("../../common/email/email.service");
+const _templates = require("../../common/email/templates");
 const _appexception = require("../../common/errors/app-exception");
 const _password = require("../../common/security/password");
 const _client = require("../../db/client");
@@ -65,7 +66,14 @@ let StaffService = class StaffService {
         await this.email.send({
             to: created.email,
             subject: 'Your LifeCome Live operations console account',
-            html: `<p>Hi ${escapeHtml(created.fullName)},</p><p>An operations console account was created for you at LifeCome Live, with the role of <strong>${escapeHtml(created.role)}</strong>.</p><p>Sign in with this email address and the password you were given.</p>`
+            html: (0, _templates.renderEmailLayout)({
+                heading: 'Your console account is ready',
+                bodyHtml: `
+          <p style="margin:0 0 16px 0;">Hi ${(0, _templates.escapeHtml)(created.fullName)},</p>
+          <p style="margin:0 0 16px 0;">An operations console account was created for you at LifeCome Live, with the role of <strong>${(0, _templates.escapeHtml)(created.role)}</strong>.</p>
+          <p style="margin:0;">Sign in with this email address and the password you were given.</p>
+        `
+            })
         });
         return toSummary(created);
     }
@@ -182,11 +190,6 @@ StaffService = _ts_decorate([
         typeof _emailservice.EmailService === "undefined" ? Object : _emailservice.EmailService
     ])
 ], StaffService);
-/** Minimal escaping for values interpolated into the welcome email's HTML (a staff member's own
- * full name/role, not untrusted external input, but cheap insurance against a stray `<` breaking
- * the markup or rendering as a tag in the recipient's mail client). */ function escapeHtml(value) {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 /** Checks the file's leading "magic" bytes against its declared type. */ function matchesImageType(image, contentType) {
     switch(contentType){
         case 'image/jpeg':

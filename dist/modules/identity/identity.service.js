@@ -16,7 +16,8 @@ const _client = require("../../db/client");
 const _schema = require("../../db/schema");
 const _configuration = require("../../common/config/configuration");
 const _appexception = require("../../common/errors/app-exception");
-const _smsservice = require("../../common/sms/sms.service");
+const _emailservice = require("../../common/email/email.service");
+const _templates = require("../../common/email/templates");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") {
@@ -43,12 +44,14 @@ function _ts_param(paramIndex, decorator) {
 const OTP_TTL_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
 let IdentityService = class IdentityService {
-    /** Idempotent: registering an already-known phone number returns the existing account. */ async register(phoneNumber) {
-        const [existing] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.phoneNumber, phoneNumber));
+    /** Idempotent: registering an already-known email returns the existing account. `phoneNumber`
+   * is optional contact info only - LifeCome Live verifies by email, not SMS. */ async register(email, phoneNumber) {
+        const [existing] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.email, email));
         if (existing) {
             return existing;
         }
         const [created] = await this.db.insert(_schema.userAccounts).values({
+            email,
             phoneNumber,
             status: 'pending_verification'
         }).returning();
@@ -64,22 +67,28 @@ let IdentityService = class IdentityService {
         await this.db.insert(_schema.otpChallenges).values({
             userAccountId,
             codeHash,
-            purpose: 'phone_verification',
+            purpose: 'email_verification',
             expiresAt
         });
-        // SmsService no-ops (and just logs) when HTTPSMS_API_KEY/HTTPSMS_FROM_NUMBER aren't set — see
+        // EmailService no-ops (and just logs) when BREVO_API_KEY/BREVO_SENDER_EMAIL aren't set - see
         // its own doc comment for why a failed/unconfigured send never blocks this request.
-        await this.sms.send({
-            to: account.phoneNumber,
-            body: `Your LifeCome Live verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`
+        await this.email.send({
+            to: account.email,
+            subject: 'Verify your email - LifeCome Live',
+            html: (0, _templates.otpEmailHtml)({
+                code,
+                expiresInMinutes: OTP_TTL_MINUTES,
+                heading: 'Verify your email',
+                intro: 'Use the code below to verify your email address and finish signing in to LifeCome Live.'
+            })
         });
         // Never log a live OTP in production; in development this is how you retrieve it without a
-        // phone attached (see SmsService for the equivalent behind HTTPSMS_API_KEY).
+        // real inbox attached (see EmailService for the equivalent behind BREVO_API_KEY).
         if (!this.config.isProduction) {
             this.logger.debug({
                 userAccountId,
                 code
-            }, 'OTP generated (development only — logged regardless of SMS delivery)');
+            }, 'OTP generated (development only — logged regardless of email delivery)');
         }
         return {
             expiresAt
@@ -107,7 +116,7 @@ let IdentityService = class IdentityService {
         }).where((0, _drizzleorm.eq)(_schema.otpChallenges.id, challenge.id));
         const [account] = await this.db.update(_schema.userAccounts).set({
             status: 'active',
-            phoneVerifiedAt: new Date(),
+            emailVerifiedAt: new Date(),
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId)).returning();
         return account;
@@ -115,10 +124,10 @@ let IdentityService = class IdentityService {
     hashCode(code) {
         return (0, _nodecrypto.createHash)('sha256').update(`${code}:${this.config.sessionJwtSecret}`).digest('hex');
     }
-    constructor(db, config, sms, logger){
+    constructor(db, config, email, logger){
         this.db = db;
         this.config = config;
-        this.sms = sms;
+        this.email = email;
         this.logger = logger;
     }
 };
@@ -130,7 +139,7 @@ IdentityService = _ts_decorate([
     _ts_metadata("design:paramtypes", [
         typeof Database === "undefined" ? Object : Database,
         typeof _configuration.AppConfigService === "undefined" ? Object : _configuration.AppConfigService,
-        typeof _smsservice.SmsService === "undefined" ? Object : _smsservice.SmsService,
+        typeof _emailservice.EmailService === "undefined" ? Object : _emailservice.EmailService,
         typeof _nestjspino.PinoLogger === "undefined" ? Object : _nestjspino.PinoLogger
     ])
 ], IdentityService);

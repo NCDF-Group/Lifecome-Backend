@@ -8,14 +8,16 @@ import { DRIZZLE, type Database } from '../../db/client';
 import { otpChallenges, userAccounts } from '../../db/schema';
 import { AppConfigService } from '../../common/config/configuration';
 import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
-import { SmsService } from '../../common/sms/sms.service';
+import { EmailService } from '../../common/email/email.service';
+import { otpEmailHtml } from '../../common/email/templates';
 
 const OTP_TTL_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
 
 export interface UserAccountSummary {
   id: string;
-  phoneNumber: string;
+  email: string;
+  phoneNumber: string | null;
   status: string;
 }
 
@@ -24,20 +26,21 @@ export class IdentityService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly config: AppConfigService,
-    private readonly sms: SmsService,
+    private readonly email: EmailService,
     @InjectPinoLogger(IdentityService.name) private readonly logger: PinoLogger,
   ) {}
 
-  /** Idempotent: registering an already-known phone number returns the existing account. */
-  async register(phoneNumber: string): Promise<UserAccountSummary> {
-    const [existing] = await this.db.select().from(userAccounts).where(eq(userAccounts.phoneNumber, phoneNumber));
+  /** Idempotent: registering an already-known email returns the existing account. `phoneNumber`
+   * is optional contact info only - LifeCome Live verifies by email, not SMS. */
+  async register(email: string, phoneNumber?: string): Promise<UserAccountSummary> {
+    const [existing] = await this.db.select().from(userAccounts).where(eq(userAccounts.email, email));
     if (existing) {
       return existing;
     }
 
     const [created] = await this.db
       .insert(userAccounts)
-      .values({ phoneNumber, status: 'pending_verification' })
+      .values({ email, phoneNumber, status: 'pending_verification' })
       .returning();
 
     await this.requestOtp(created.id);
@@ -55,21 +58,27 @@ export class IdentityService {
     await this.db.insert(otpChallenges).values({
       userAccountId,
       codeHash,
-      purpose: 'phone_verification',
+      purpose: 'email_verification',
       expiresAt,
     });
 
-    // SmsService no-ops (and just logs) when HTTPSMS_API_KEY/HTTPSMS_FROM_NUMBER aren't set — see
+    // EmailService no-ops (and just logs) when BREVO_API_KEY/BREVO_SENDER_EMAIL aren't set - see
     // its own doc comment for why a failed/unconfigured send never blocks this request.
-    await this.sms.send({
-      to: account.phoneNumber,
-      body: `Your LifeCome Live verification code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+    await this.email.send({
+      to: account.email,
+      subject: 'Verify your email - LifeCome Live',
+      html: otpEmailHtml({
+        code,
+        expiresInMinutes: OTP_TTL_MINUTES,
+        heading: 'Verify your email',
+        intro: 'Use the code below to verify your email address and finish signing in to LifeCome Live.',
+      }),
     });
 
     // Never log a live OTP in production; in development this is how you retrieve it without a
-    // phone attached (see SmsService for the equivalent behind HTTPSMS_API_KEY).
+    // real inbox attached (see EmailService for the equivalent behind BREVO_API_KEY).
     if (!this.config.isProduction) {
-      this.logger.debug({ userAccountId, code }, 'OTP generated (development only — logged regardless of SMS delivery)');
+      this.logger.debug({ userAccountId, code }, 'OTP generated (development only — logged regardless of email delivery)');
     }
 
     return { expiresAt };
@@ -104,7 +113,7 @@ export class IdentityService {
 
     const [account] = await this.db
       .update(userAccounts)
-      .set({ status: 'active', phoneVerifiedAt: new Date(), updatedAt: new Date() })
+      .set({ status: 'active', emailVerifiedAt: new Date(), updatedAt: new Date() })
       .where(eq(userAccounts.id, userAccountId))
       .returning();
 

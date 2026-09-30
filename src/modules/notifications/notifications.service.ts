@@ -15,8 +15,8 @@ export type NotificationLog = typeof notificationLogs.$inferSelect;
 
 /** A notification-log row joined with the recipient's contact details `/admin/notifications` shows. */
 export type AdminNotificationLogRow = NotificationLog & {
-  recipientPhoneNumber: string;
-  recipientEmail: string | null;
+  recipientPhoneNumber: string | null;
+  recipientEmail: string;
 };
 
 /** A job payload plus the log row id `NotificationsProcessor` updates once the job runs. */

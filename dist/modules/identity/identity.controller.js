@@ -36,13 +36,13 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let IdentityController = class IdentityController {
-    /** View 01 — Sign In / Create Account. Also sends the first OTP. */ register(body) {
-        return this.identity.register(body.phoneNumber);
+    /** View 01 — Sign In / Create Account. Also sends the first OTP, by email. */ register(body) {
+        return this.identity.register(body.email, body.phoneNumber);
     }
     requestOtp(body) {
         return this.identity.requestOtp(body.userAccountId);
     }
-    /** View 02 — Verify Mobile Number. */ verifyOtp(body) {
+    /** View 02 — Verify Email. */ verifyOtp(body) {
         return this.identity.verifyOtp(body.userAccountId, body.code);
     }
     constructor(identity){

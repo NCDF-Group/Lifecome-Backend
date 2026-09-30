@@ -31,7 +31,10 @@ _export(exports, {
 const _zoddto = require("../../../common/validation/zod-dto");
 const _zod = require("zod");
 const RegisterSchema = _zod.z.object({
-    /** E.164-ish; loosely validated here, normalised properly once a real SMS provider is wired in. */ phoneNumber: _zod.z.string().min(8).max(20).regex(/^\+?[0-9]+$/, 'Phone number must contain only digits and an optional leading +')
+    email: _zod.z.email(),
+    /** Optional contact info only - never used to sign in or verify anything (email OTP is).
+   * E.164-ish; loosely validated here, normalised properly once a real SMS provider is wired in
+   * for things like appointment reminders. */ phoneNumber: _zod.z.string().min(8).max(20).regex(/^\+?[0-9]+$/, 'Phone number must contain only digits and an optional leading +').optional()
 });
 let RegisterDto = class RegisterDto extends (0, _zoddto.createZodDto)(RegisterSchema) {
 };

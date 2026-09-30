@@ -9,10 +9,10 @@ import { IdentityService, type UserAccountSummary } from './identity.service';
 export class IdentityController {
   constructor(private readonly identity: IdentityService) {}
 
-  /** View 01 — Sign In / Create Account. Also sends the first OTP. */
+  /** View 01 — Sign In / Create Account. Also sends the first OTP, by email. */
   @Post('register')
   register(@Body() body: RegisterDto): Promise<UserAccountSummary> {
-    return this.identity.register(body.phoneNumber);
+    return this.identity.register(body.email, body.phoneNumber);
   }
 
   @Post('otp/request')
@@ -20,7 +20,7 @@ export class IdentityController {
     return this.identity.requestOtp(body.userAccountId);
   }
 
-  /** View 02 — Verify Mobile Number. */
+  /** View 02 — Verify Email. */
   @Post('otp/verify')
   verifyOtp(@Body() body: VerifyOtpDto): Promise<UserAccountSummary> {
     return this.identity.verifyOtp(body.userAccountId, body.code);

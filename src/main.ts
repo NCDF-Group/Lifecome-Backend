@@ -8,10 +8,11 @@ import { VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Logger } from 'nestjs-pino';
+import { Logger, PinoLogger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { AppConfigService } from './common/config/configuration';
+import { startSelfPing } from './common/keep-alive/self-ping';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter({ trustProxy: true }), {
@@ -51,6 +52,10 @@ async function bootstrap(): Promise<void> {
   SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });
 
   await app.listen(config.port, '0.0.0.0');
+
+  const pinoLogger = app.get(PinoLogger);
+  pinoLogger.setContext('SelfPing');
+  startSelfPing(pinoLogger);
 }
 
 bootstrap().catch((error: unknown) => {

@@ -14,6 +14,7 @@ const _swagger = require("@nestjs/swagger");
 const _nestjspino = require("nestjs-pino");
 const _appmodule = require("./app.module");
 const _configuration = require("./common/config/configuration");
+const _selfping = require("./common/keep-alive/self-ping");
 function _interop_require_default(obj) {
     return obj && obj.__esModule ? obj : {
         default: obj
@@ -59,6 +60,9 @@ async function bootstrap() {
         useGlobalPrefix: true
     });
     await app.listen(config.port, '0.0.0.0');
+    const pinoLogger = app.get(_nestjspino.PinoLogger);
+    pinoLogger.setContext('SelfPing');
+    (0, _selfping.startSelfPing)(pinoLogger);
 }
 bootstrap().catch((error)=>{
     console.error('Failed to start:', error);
