@@ -1,7 +1,16 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { PatientLoginDto, RegisterDto, RequestOtpDto, SetPasswordDto, VerifyOtpDto } from './dto/register.dto';
+import {
+  ConfirmPasswordResetDto,
+  PatientLoginDto,
+  RegisterDto,
+  RequestOtpDto,
+  RequestPasswordResetDto,
+  SetPasswordDto,
+  VerifyOtpDto,
+  VerifyPasswordResetCodeDto,
+} from './dto/register.dto';
 import { IdentityService, type PatientSession, type UserAccountSummary } from './identity.service';
 
 @ApiTags('identity')
@@ -36,5 +45,23 @@ export class IdentityController {
   @Post('login')
   login(@Body() body: PatientLoginDto): Promise<PatientSession> {
     return this.identity.login(body.email, body.password);
+  }
+
+  /** Forgot password, step 1 — always responds the same whether or not the email has an account. */
+  @Post('password-reset/request')
+  requestPasswordReset(@Body() body: RequestPasswordResetDto): Promise<{ expiresAt: Date }> {
+    return this.identity.requestPasswordReset(body.email);
+  }
+
+  /** Forgot password, step 2 — checks the code without consuming it (see `confirmPasswordReset`). */
+  @Post('password-reset/verify')
+  verifyPasswordResetCode(@Body() body: VerifyPasswordResetCodeDto): Promise<void> {
+    return this.identity.verifyPasswordResetCode(body.email, body.code);
+  }
+
+  /** Forgot password, step 3 — consumes the code and sets the new password. */
+  @Post('password-reset/confirm')
+  confirmPasswordReset(@Body() body: ConfirmPasswordResetDto): Promise<void> {
+    return this.identity.confirmPasswordReset(body.email, body.code, body.newPassword);
   }
 }

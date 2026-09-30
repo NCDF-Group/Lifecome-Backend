@@ -44,3 +44,24 @@ export const PatientLoginSchema = z.object({
 });
 
 export class PatientLoginDto extends createZodDto(PatientLoginSchema) {}
+
+export const RequestPasswordResetSchema = z.object({
+  email: z.email(),
+});
+
+export class RequestPasswordResetDto extends createZodDto(RequestPasswordResetSchema) {}
+
+export const VerifyPasswordResetCodeSchema = z.object({
+  email: z.email(),
+  code: z.string().length(6),
+});
+
+export class VerifyPasswordResetCodeDto extends createZodDto(VerifyPasswordResetCodeSchema) {}
+
+export const ConfirmPasswordResetSchema = z.object({
+  email: z.email(),
+  code: z.string().length(6),
+  newPassword: z.string().min(8).max(200),
+});
+
+export class ConfirmPasswordResetDto extends createZodDto(ConfirmPasswordResetSchema) {}
