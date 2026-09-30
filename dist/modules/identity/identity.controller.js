@@ -45,6 +45,12 @@ let IdentityController = class IdentityController {
     /** View 02 — Verify Email. */ verifyOtp(body) {
         return this.identity.verifyOtp(body.userAccountId, body.code);
     }
+    /** View 03 — Create Password. Signs the patient in immediately after. */ setPassword(body) {
+        return this.identity.setPassword(body.userAccountId, body.password);
+    }
+    /** Welcome back — email+password sign-in. */ login(body) {
+        return this.identity.login(body.email, body.password);
+    }
     constructor(identity){
         this.identity = identity;
     }
@@ -76,6 +82,24 @@ _ts_decorate([
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], IdentityController.prototype, "verifyOtp", null);
+_ts_decorate([
+    (0, _common.Post)('password'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _registerdto.SetPasswordDto === "undefined" ? Object : _registerdto.SetPasswordDto
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], IdentityController.prototype, "setPassword", null);
+_ts_decorate([
+    (0, _common.Post)('login'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _registerdto.PatientLoginDto === "undefined" ? Object : _registerdto.PatientLoginDto
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], IdentityController.prototype, "login", null);
 IdentityController = _ts_decorate([
     (0, _swagger.ApiTags)('identity'),
     (0, _common.Controller)('identity'),

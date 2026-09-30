@@ -9,6 +9,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
+    get PatientLoginDto () {
+        return PatientLoginDto;
+    },
+    get PatientLoginSchema () {
+        return PatientLoginSchema;
+    },
     get RegisterDto () {
         return RegisterDto;
     },
@@ -20,6 +26,12 @@ _export(exports, {
     },
     get RequestOtpSchema () {
         return RequestOtpSchema;
+    },
+    get SetPasswordDto () {
+        return SetPasswordDto;
+    },
+    get SetPasswordSchema () {
+        return SetPasswordSchema;
     },
     get VerifyOtpDto () {
         return VerifyOtpDto;
@@ -48,6 +60,18 @@ const RequestOtpSchema = _zod.z.object({
     userAccountId: _zod.z.uuid()
 });
 let RequestOtpDto = class RequestOtpDto extends (0, _zoddto.createZodDto)(RequestOtpSchema) {
+};
+const SetPasswordSchema = _zod.z.object({
+    userAccountId: _zod.z.uuid(),
+    password: _zod.z.string().min(8).max(200)
+});
+let SetPasswordDto = class SetPasswordDto extends (0, _zoddto.createZodDto)(SetPasswordSchema) {
+};
+const PatientLoginSchema = _zod.z.object({
+    email: _zod.z.email(),
+    password: _zod.z.string().min(1)
+});
+let PatientLoginDto = class PatientLoginDto extends (0, _zoddto.createZodDto)(PatientLoginSchema) {
 };
 
 //# sourceMappingURL=register.dto.js.map

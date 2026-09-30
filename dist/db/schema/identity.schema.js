@@ -22,6 +22,9 @@ const userAccounts = (0, _pgcore.pgTable)('user_accounts', {
     id: (0, _pgcore.uuid)('id').primaryKey().defaultRandom(),
     email: (0, _pgcore.text)('email').notNull(),
     phoneNumber: (0, _pgcore.text)('phone_number'),
+    /** Null until `IdentityService.setPassword` - the account exists (and its email may already
+     * be verified) before it necessarily has one, since sign-up verifies the email first and sets
+     * a password as its own separate step (see `IdentityController`'s `POST /identity/password`). */ passwordHash: (0, _pgcore.text)('password_hash'),
     status: (0, _enums.userAccountStatusEnum)('status').notNull().default('pending_verification'),
     emailVerifiedAt: (0, _pgcore.timestamp)('email_verified_at', {
         withTimezone: true

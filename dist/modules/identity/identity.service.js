@@ -10,6 +10,7 @@ Object.defineProperty(exports, "IdentityService", {
 });
 const _nodecrypto = require("node:crypto");
 const _common = require("@nestjs/common");
+const _jwt = require("@nestjs/jwt");
 const _drizzleorm = require("drizzle-orm");
 const _nestjspino = require("nestjs-pino");
 const _client = require("../../db/client");
@@ -17,6 +18,7 @@ const _schema = require("../../db/schema");
 const _configuration = require("../../common/config/configuration");
 const _appexception = require("../../common/errors/app-exception");
 const _emailservice = require("../../common/email/email.service");
+const _password = require("../../common/security/password");
 const _templates = require("../../common/email/templates");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -43,12 +45,20 @@ function _ts_param(paramIndex, decorator) {
 }
 const OTP_TTL_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // matches IdentityModule's JwtModule signOptions.expiresIn
+function toSummary(account) {
+    const summary = {
+        ...account
+    };
+    delete summary.passwordHash;
+    return summary;
+}
 let IdentityService = class IdentityService {
     /** Idempotent: registering an already-known email returns the existing account. `phoneNumber`
    * is optional contact info only - LifeCome Live verifies by email, not SMS. */ async register(email, phoneNumber) {
         const [existing] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.email, email));
         if (existing) {
-            return existing;
+            return toSummary(existing);
         }
         const [created] = await this.db.insert(_schema.userAccounts).values({
             email,
@@ -56,7 +66,7 @@ let IdentityService = class IdentityService {
             status: 'pending_verification'
         }).returning();
         await this.requestOtp(created.id);
-        return created;
+        return toSummary(created);
     }
     async requestOtp(userAccountId) {
         const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId));
@@ -119,27 +129,65 @@ let IdentityService = class IdentityService {
             emailVerifiedAt: new Date(),
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId)).returning();
-        return account;
+        return toSummary(account);
+    }
+    /** Sets the account's password, then signs it straight in — its own step after `verifyOtp`,
+   * since sign-up verifies the email before it ever asks for a password. */ async setPassword(userAccountId, password) {
+        const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId));
+        if (!account) throw new _appexception.NotFoundAppException('User account');
+        if (!account.emailVerifiedAt) {
+            throw new _appexception.AppException('EMAIL_NOT_VERIFIED', 'Verify your email before setting a password.', _common.HttpStatus.BAD_REQUEST);
+        }
+        const passwordHash = await (0, _password.hashPassword)(password);
+        const [updated] = await this.db.update(_schema.userAccounts).set({
+            passwordHash,
+            updatedAt: new Date()
+        }).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId)).returning();
+        return this.issueSession(updated);
+    }
+    async login(email, password) {
+        const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.email, email));
+        if (!account || !account.passwordHash) {
+            throw new _appexception.AppException('INVALID_CREDENTIALS', 'Email or password is incorrect.', _common.HttpStatus.UNAUTHORIZED);
+        }
+        const valid = await (0, _password.verifyPassword)(password, account.passwordHash);
+        if (!valid) {
+            throw new _appexception.AppException('INVALID_CREDENTIALS', 'Email or password is incorrect.', _common.HttpStatus.UNAUTHORIZED);
+        }
+        return this.issueSession(account);
+    }
+    async issueSession(account) {
+        const accessToken = await this.jwt.signAsync({
+            sub: account.id,
+            email: account.email
+        });
+        return {
+            accessToken,
+            expiresIn: TOKEN_TTL_SECONDS,
+            account: toSummary(account)
+        };
     }
     hashCode(code) {
         return (0, _nodecrypto.createHash)('sha256').update(`${code}:${this.config.sessionJwtSecret}`).digest('hex');
     }
-    constructor(db, config, email, logger){
+    constructor(db, config, email, jwt, logger){
         this.db = db;
         this.config = config;
         this.email = email;
+        this.jwt = jwt;
         this.logger = logger;
     }
 };
 IdentityService = _ts_decorate([
     (0, _common.Injectable)(),
     _ts_param(0, (0, _common.Inject)(_client.DRIZZLE)),
-    _ts_param(3, (0, _nestjspino.InjectPinoLogger)(IdentityService.name)),
+    _ts_param(4, (0, _nestjspino.InjectPinoLogger)(IdentityService.name)),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         typeof Database === "undefined" ? Object : Database,
         typeof _configuration.AppConfigService === "undefined" ? Object : _configuration.AppConfigService,
         typeof _emailservice.EmailService === "undefined" ? Object : _emailservice.EmailService,
+        typeof _jwt.JwtService === "undefined" ? Object : _jwt.JwtService,
         typeof _nestjspino.PinoLogger === "undefined" ? Object : _nestjspino.PinoLogger
     ])
 ], IdentityService);
