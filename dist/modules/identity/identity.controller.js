@@ -51,6 +51,15 @@ let IdentityController = class IdentityController {
     /** Welcome back — email+password sign-in. */ login(body) {
         return this.identity.login(body.email, body.password);
     }
+    /** Forgot password, step 1 — always responds the same whether or not the email has an account. */ requestPasswordReset(body) {
+        return this.identity.requestPasswordReset(body.email);
+    }
+    /** Forgot password, step 2 — checks the code without consuming it (see `confirmPasswordReset`). */ verifyPasswordResetCode(body) {
+        return this.identity.verifyPasswordResetCode(body.email, body.code);
+    }
+    /** Forgot password, step 3 — consumes the code and sets the new password. */ confirmPasswordReset(body) {
+        return this.identity.confirmPasswordReset(body.email, body.code, body.newPassword);
+    }
     constructor(identity){
         this.identity = identity;
     }
@@ -100,6 +109,33 @@ _ts_decorate([
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], IdentityController.prototype, "login", null);
+_ts_decorate([
+    (0, _common.Post)('password-reset/request'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _registerdto.RequestPasswordResetDto === "undefined" ? Object : _registerdto.RequestPasswordResetDto
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], IdentityController.prototype, "requestPasswordReset", null);
+_ts_decorate([
+    (0, _common.Post)('password-reset/verify'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _registerdto.VerifyPasswordResetCodeDto === "undefined" ? Object : _registerdto.VerifyPasswordResetCodeDto
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], IdentityController.prototype, "verifyPasswordResetCode", null);
+_ts_decorate([
+    (0, _common.Post)('password-reset/confirm'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _registerdto.ConfirmPasswordResetDto === "undefined" ? Object : _registerdto.ConfirmPasswordResetDto
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], IdentityController.prototype, "confirmPasswordReset", null);
 IdentityController = _ts_decorate([
     (0, _swagger.ApiTags)('identity'),
     (0, _common.Controller)('identity'),

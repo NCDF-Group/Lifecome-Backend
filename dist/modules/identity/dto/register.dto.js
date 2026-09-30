@@ -9,6 +9,12 @@ function _export(target, all) {
     });
 }
 _export(exports, {
+    get ConfirmPasswordResetDto () {
+        return ConfirmPasswordResetDto;
+    },
+    get ConfirmPasswordResetSchema () {
+        return ConfirmPasswordResetSchema;
+    },
     get PatientLoginDto () {
         return PatientLoginDto;
     },
@@ -27,6 +33,12 @@ _export(exports, {
     get RequestOtpSchema () {
         return RequestOtpSchema;
     },
+    get RequestPasswordResetDto () {
+        return RequestPasswordResetDto;
+    },
+    get RequestPasswordResetSchema () {
+        return RequestPasswordResetSchema;
+    },
     get SetPasswordDto () {
         return SetPasswordDto;
     },
@@ -38,6 +50,12 @@ _export(exports, {
     },
     get VerifyOtpSchema () {
         return VerifyOtpSchema;
+    },
+    get VerifyPasswordResetCodeDto () {
+        return VerifyPasswordResetCodeDto;
+    },
+    get VerifyPasswordResetCodeSchema () {
+        return VerifyPasswordResetCodeSchema;
     }
 });
 const _zoddto = require("../../../common/validation/zod-dto");
@@ -72,6 +90,24 @@ const PatientLoginSchema = _zod.z.object({
     password: _zod.z.string().min(1)
 });
 let PatientLoginDto = class PatientLoginDto extends (0, _zoddto.createZodDto)(PatientLoginSchema) {
+};
+const RequestPasswordResetSchema = _zod.z.object({
+    email: _zod.z.email()
+});
+let RequestPasswordResetDto = class RequestPasswordResetDto extends (0, _zoddto.createZodDto)(RequestPasswordResetSchema) {
+};
+const VerifyPasswordResetCodeSchema = _zod.z.object({
+    email: _zod.z.email(),
+    code: _zod.z.string().length(6)
+});
+let VerifyPasswordResetCodeDto = class VerifyPasswordResetCodeDto extends (0, _zoddto.createZodDto)(VerifyPasswordResetCodeSchema) {
+};
+const ConfirmPasswordResetSchema = _zod.z.object({
+    email: _zod.z.email(),
+    code: _zod.z.string().length(6),
+    newPassword: _zod.z.string().min(8).max(200)
+});
+let ConfirmPasswordResetDto = class ConfirmPasswordResetDto extends (0, _zoddto.createZodDto)(ConfirmPasswordResetSchema) {
 };
 
 //# sourceMappingURL=register.dto.js.map
