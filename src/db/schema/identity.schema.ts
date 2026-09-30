@@ -15,6 +15,10 @@ export const userAccounts = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     email: text('email').notNull(),
     phoneNumber: text('phone_number'),
+    /** Null until `IdentityService.setPassword` - the account exists (and its email may already
+     * be verified) before it necessarily has one, since sign-up verifies the email first and sets
+     * a password as its own separate step (see `IdentityController`'s `POST /identity/password`). */
+    passwordHash: text('password_hash'),
     status: userAccountStatusEnum('status').notNull().default('pending_verification'),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     /** @deprecated Unused now that verification is by email (see `emailVerifiedAt`) - kept

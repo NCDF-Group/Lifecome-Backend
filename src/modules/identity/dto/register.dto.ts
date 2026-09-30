@@ -28,3 +28,19 @@ export const RequestOtpSchema = z.object({
 });
 
 export class RequestOtpDto extends createZodDto(RequestOtpSchema) {}
+
+/** Sets the account's password once its email is verified — its own step after `otp/verify`,
+ * not part of registration, since sign-up verifies the email first (see `IdentityService`). */
+export const SetPasswordSchema = z.object({
+  userAccountId: z.uuid(),
+  password: z.string().min(8).max(200),
+});
+
+export class SetPasswordDto extends createZodDto(SetPasswordSchema) {}
+
+export const PatientLoginSchema = z.object({
+  email: z.email(),
+  password: z.string().min(1),
+});
+
+export class PatientLoginDto extends createZodDto(PatientLoginSchema) {}

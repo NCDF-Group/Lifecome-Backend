@@ -1,8 +1,8 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { RegisterDto, RequestOtpDto, VerifyOtpDto } from './dto/register.dto';
-import { IdentityService, type UserAccountSummary } from './identity.service';
+import { PatientLoginDto, RegisterDto, RequestOtpDto, SetPasswordDto, VerifyOtpDto } from './dto/register.dto';
+import { IdentityService, type PatientSession, type UserAccountSummary } from './identity.service';
 
 @ApiTags('identity')
 @Controller('identity')
@@ -24,5 +24,17 @@ export class IdentityController {
   @Post('otp/verify')
   verifyOtp(@Body() body: VerifyOtpDto): Promise<UserAccountSummary> {
     return this.identity.verifyOtp(body.userAccountId, body.code);
+  }
+
+  /** View 03 — Create Password. Signs the patient in immediately after. */
+  @Post('password')
+  setPassword(@Body() body: SetPasswordDto): Promise<PatientSession> {
+    return this.identity.setPassword(body.userAccountId, body.password);
+  }
+
+  /** Welcome back — email+password sign-in. */
+  @Post('login')
+  login(@Body() body: PatientLoginDto): Promise<PatientSession> {
+    return this.identity.login(body.email, body.password);
   }
 }
