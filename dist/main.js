@@ -60,7 +60,9 @@ async function bootstrap() {
         useGlobalPrefix: true
     });
     await app.listen(config.port, '0.0.0.0');
-    const pinoLogger = app.get(_nestjspino.PinoLogger);
+    // PinoLogger is request-scoped, so it can't be fetched with `get()` outside a request — only
+    // `resolve()` (which creates its own DI sub-context) works here, at the top level of bootstrap.
+    const pinoLogger = await app.resolve(_nestjspino.PinoLogger);
     pinoLogger.setContext('SelfPing');
     (0, _selfping.startSelfPing)(pinoLogger);
 }
