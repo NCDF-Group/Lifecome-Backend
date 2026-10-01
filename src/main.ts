@@ -53,7 +53,9 @@ async function bootstrap(): Promise<void> {
 
   await app.listen(config.port, '0.0.0.0');
 
-  const pinoLogger = app.get(PinoLogger);
+  // PinoLogger is request-scoped, so it can't be fetched with `get()` outside a request — only
+  // `resolve()` (which creates its own DI sub-context) works here, at the top level of bootstrap.
+  const pinoLogger = await app.resolve(PinoLogger);
   pinoLogger.setContext('SelfPing');
   startSelfPing(pinoLogger);
 }
