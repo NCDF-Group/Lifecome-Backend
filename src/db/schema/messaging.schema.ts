@@ -8,6 +8,8 @@ export const messageThreads = pgTable('message_threads', {
     .notNull()
     .references(() => patients.id, { onDelete: 'cascade' }),
   subject: text('subject'),
+  /** What the patient picked on "What do you need help with?": booking_payments, online_appointment, clinic_visit or follow_up. */
+  topic: text('topic'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

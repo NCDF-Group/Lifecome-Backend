@@ -30,5 +30,5 @@ import { RolesGuard } from './roles.guard';
 export class CommonAuthModule {}
 
 export { CurrentStaff, JwtAuthGuard, RolesGuard };
-export { Roles } from './roles.decorator';
+export { AllowClinician, Roles } from './roles.decorator';
 export type { StaffRole, StaffTokenPayload } from './staff-token';

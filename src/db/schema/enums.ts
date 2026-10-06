@@ -65,7 +65,10 @@ export const consultationStatusEnum = pgEnum('consultation_status', [
   'ended',
 ]);
 
-export const consultationModeEnum = pgEnum('consultation_mode', ['video', 'audio']);
+export const consultationModeEnum = pgEnum('consultation_mode', ['video', 'audio', 'in_person']);
+
+/** How an appointment is funded - the route the patient picked on "Choose your access". */
+export const fundingRouteEnum = pgEnum('funding_route', ['pay_per_visit', 'lifecome_benefits', 'workplace', 'membership']);
 
 export const clinicalNoteStatusEnum = pgEnum('clinical_note_status', ['draft', 'signed', 'amended']);
 
@@ -117,6 +120,8 @@ export const staffRoleEnum = pgEnum('staff_role', [
   'clinical_administrator',
   'hmo_operations',
   'support_agent',
+  // A doctor. Sees only the clinician workspace (`/clinician/*`), never the admin endpoints - see RolesGuard.
+  'clinician',
 ]);
 
 export const staffAccountStatusEnum = pgEnum('staff_account_status', ['active', 'suspended']);

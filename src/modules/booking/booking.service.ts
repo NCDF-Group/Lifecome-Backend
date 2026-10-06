@@ -3,7 +3,7 @@ import { and, count, desc, eq, getTableColumns, sql } from 'drizzle-orm';
 
 import { paginate, type PaginatedResult } from '../../common/dto/pagination.dto';
 import { DRIZZLE, type Database } from '../../db/client';
-import { appointments, clinicalServices, patients, providers } from '../../db/schema';
+import { appointments, availabilitySlots, clinicalServices, patients, providers } from '../../db/schema';
 import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
 import { SchedulingService } from '../scheduling/scheduling.service';
 import type { CreateAppointmentDto, ListAppointmentsQueryDto } from './dto/booking.dto';
@@ -17,6 +17,9 @@ export type AdminAppointmentRow = Appointment & {
   serviceName: string;
   feeKobo: number;
 };
+
+/** One appointment for the console's booking detail page: the joined names plus when it starts. */
+export type AdminAppointmentDetail = AdminAppointmentRow & { startsAt: Date; durationMinutes: number };
 
 const CANCELLABLE_STATUSES: Appointment['status'][] = ['slot_held', 'confirmed'];
 
@@ -51,6 +54,28 @@ export class BookingService {
     const [appointment] = await this.db.select().from(appointments).where(eq(appointments.id, id));
     if (!appointment) throw new NotFoundAppException('Appointment');
     return appointment;
+  }
+
+  /** `/admin/bookings/:id` — the booking detail page. */
+  async adminGet(id: string): Promise<AdminAppointmentDetail> {
+    const [row] = await this.db
+      .select({
+        ...getTableColumns(appointments),
+        patientName: sql<string>`${patients.firstName} || ' ' || ${patients.lastName}`,
+        providerName: providers.displayName,
+        serviceName: clinicalServices.name,
+        feeKobo: clinicalServices.basePriceKobo,
+        startsAt: availabilitySlots.startsAt,
+        durationMinutes: availabilitySlots.durationMinutes,
+      })
+      .from(appointments)
+      .innerJoin(patients, eq(appointments.patientId, patients.id))
+      .innerJoin(providers, eq(appointments.providerId, providers.id))
+      .innerJoin(clinicalServices, eq(appointments.clinicalServiceId, clinicalServices.id))
+      .innerJoin(availabilitySlots, eq(appointments.availabilitySlotId, availabilitySlots.id))
+      .where(eq(appointments.id, id));
+    if (!row) throw new NotFoundAppException('Appointment');
+    return row;
   }
 
   /** `/admin/bookings` — the "Bookings" page in the operations console. */

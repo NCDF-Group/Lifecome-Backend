@@ -21,3 +21,6 @@ npm-debug.log*
 
 # Test/coverage
 coverage/
+
+# Production secrets for the VPS deploy (see deploy/.env.production.example)
+deploy/.env.production

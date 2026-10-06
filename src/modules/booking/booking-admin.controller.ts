@@ -2,7 +2,7 @@ import { Controller, Get, Param, ParseUUIDPipe, Query, UseGuards } from '@nestjs
 import { ApiTags } from '@nestjs/swagger';
 
 import { JwtAuthGuard, RolesGuard } from '../../common/auth/common-auth.module';
-import { BookingService, type Appointment } from './booking.service';
+import { BookingService, type AdminAppointmentDetail } from './booking.service';
 import { ListAppointmentsQueryDto } from './dto/booking.dto';
 
 /** `/admin/bookings` — the "Bookings" page in the operations console. */
@@ -18,7 +18,7 @@ export class BookingAdminController {
   }
 
   @Get(':id')
-  get(@Param('id', ParseUUIDPipe) id: string): Promise<Appointment> {
-    return this.booking.getById(id);
+  get(@Param('id', ParseUUIDPipe) id: string): Promise<AdminAppointmentDetail> {
+    return this.booking.adminGet(id);
   }
 }

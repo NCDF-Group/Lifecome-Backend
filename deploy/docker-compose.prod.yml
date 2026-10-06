@@ -1,0 +1,79 @@
+name: lifecome-prod
+
+# Production stack for a single VPS. Run via deploy/deploy.sh, or by hand from this folder:
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Nginx on the host terminates HTTPS and proxies to 127.0.0.1:3001 - the API is never exposed
+# directly. Redis is only reachable by the API over the compose network.
+#
+# To also run Postgres on this server instead of using Neon, enable the `local-db` profile
+# (COMPOSE_PROFILES=local-db) and point DATABASE_URL at it - see .env.production.example.
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: lifecome-api:latest
+    restart: unless-stopped
+    env_file: ./.env.production
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "127.0.0.1:3001:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/api/v1/health/live || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # noeviction: BullMQ (notification/reconciliation queues) must never lose keys under memory
+    # pressure - Redis should refuse writes instead.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Only started with COMPOSE_PROFILES=local-db. Published on localhost only, so you can reach it
+  # through an SSH tunnel (ssh -L 5433:127.0.0.1:5432 ...) for psql/backups, never from the internet.
+  # The API retries on boot (restart: unless-stopped) if it comes up before Postgres is ready.
+  postgres:
+    profiles: ["local-db"]
+    image: postgres:17-alpine
+    restart: unless-stopped
+    # POSTGRES_PASSWORD comes from .env.production (Postgres refuses to initialise without it).
+    env_file: ./.env.production
+    environment:
+      POSTGRES_USER: lifecome
+      POSTGRES_DB: lifecome
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lifecome -d lifecome"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  redis-data:
+  postgres-data:

@@ -8,6 +8,7 @@ export const StaffRoleSchema = z.enum([
   'clinical_administrator',
   'hmo_operations',
   'support_agent',
+  'clinician',
 ]);
 
 export const StaffStatusSchema = z.enum(['active', 'suspended']);
@@ -17,6 +18,8 @@ export const CreateStaffSchema = z.object({
   password: z.string().min(10).max(200),
   fullName: z.string().min(1).max(200),
   role: StaffRoleSchema,
+  /** Required for `clinician`: the provider profile this doctor's login works as. */
+  providerId: z.uuid().optional(),
 });
 export class CreateStaffDto extends createZodDto(CreateStaffSchema) {}
 
@@ -24,6 +27,7 @@ export const UpdateStaffSchema = z.object({
   fullName: z.string().min(1).max(200).optional(),
   role: StaffRoleSchema.optional(),
   status: StaffStatusSchema.optional(),
+  providerId: z.uuid().nullable().optional(),
 });
 export class UpdateStaffDto extends createZodDto(UpdateStaffSchema) {}
 
@@ -56,5 +60,6 @@ export class UploadAvatarDto extends createZodDto(UploadAvatarSchema) {}
 export const ListStaffQuerySchema = PaginationQuerySchema.extend({
   role: StaffRoleSchema.optional(),
   status: StaffStatusSchema.optional(),
+  providerId: z.uuid().nullable().optional(),
 });
 export class ListStaffQueryDto extends createZodDto(ListStaffQuerySchema) {}

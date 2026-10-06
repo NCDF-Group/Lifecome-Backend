@@ -7,7 +7,7 @@ import { escapeHtml, renderEmailLayout } from '../../common/email/templates';
 import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
 import { hashPassword, verifyPassword } from '../../common/security/password';
 import { DRIZZLE, type Database } from '../../db/client';
-import { staffAccounts, staffAvatars } from '../../db/schema';
+import { providers, staffAccounts, staffAvatars } from '../../db/schema';
 import {
   MAX_AVATAR_BYTES,
   type ChangeOwnPasswordDto,
@@ -37,7 +37,19 @@ export class StaffService {
     private readonly email: EmailService,
   ) {}
 
+  /** A clinician login must point at a real provider profile; no other role may carry one. */
+  private async resolveProviderId(role: StaffAccount['role'], providerId: string | null | undefined): Promise<string | null> {
+    if (role !== 'clinician') return null;
+    if (!providerId) {
+      throw new AppException('CLINICIAN_PROVIDER_REQUIRED', 'A clinician account must be linked to a provider profile.', HttpStatus.BAD_REQUEST);
+    }
+    const [provider] = await this.db.select({ id: providers.id }).from(providers).where(eq(providers.id, providerId));
+    if (!provider) throw new NotFoundAppException('Provider');
+    return providerId;
+  }
+
   async create(input: CreateStaffDto): Promise<StaffSummary> {
+    const providerId = await this.resolveProviderId(input.role, input.providerId);
     const [existing] = await this.db.select().from(staffAccounts).where(eq(staffAccounts.email, input.email));
     if (existing) {
       throw new AppException('STAFF_EMAIL_TAKEN', 'A staff account with this email already exists.', HttpStatus.CONFLICT);
@@ -46,7 +58,7 @@ export class StaffService {
     const passwordHash = await hashPassword(input.password);
     const [created] = await this.db
       .insert(staffAccounts)
-      .values({ email: input.email, passwordHash, fullName: input.fullName, role: input.role })
+      .values({ email: input.email, passwordHash, fullName: input.fullName, role: input.role, providerId })
       .returning();
 
     // Deliberately no password in this email — whoever created the account already set it and
@@ -92,10 +104,15 @@ export class StaffService {
   }
 
   async update(id: string, input: UpdateStaffDto): Promise<StaffSummary> {
-    await this.getById(id); // 404s early if missing
+    const current = await this.getById(id); // 404s early if missing
+    const patch: Partial<StaffAccount> = { ...input };
+    if (input.role !== undefined || input.providerId !== undefined) {
+      const role = input.role ?? current.role;
+      patch.providerId = await this.resolveProviderId(role, input.providerId === undefined ? current.providerId : input.providerId);
+    }
     const [updated] = await this.db
       .update(staffAccounts)
-      .set({ ...input, updatedAt: new Date() })
+      .set({ ...patch, updatedAt: new Date() })
       .where(eq(staffAccounts.id, id))
       .returning();
     return toSummary(updated);

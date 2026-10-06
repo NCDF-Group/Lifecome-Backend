@@ -16,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { CurrentStaff, JwtAuthGuard, Roles, RolesGuard, type StaffTokenPayload } from '../../common/auth/common-auth.module';
+import { AllowClinician, CurrentStaff, JwtAuthGuard, Roles, RolesGuard, type StaffTokenPayload } from '../../common/auth/common-auth.module';
 import {
   ChangeOwnPasswordDto,
   CreateStaffDto,
@@ -36,27 +36,32 @@ export class StaffController {
 
   // The `me` routes are declared before `:id` so `me` is never parsed as an id. Any signed-in staff
   // member can use them on their own account, whatever their role.
+  @AllowClinician()
   @Get('me')
   me(@CurrentStaff() staff: StaffTokenPayload): Promise<StaffSummary> {
     return this.staff.getById(staff.sub);
   }
 
+  @AllowClinician()
   @Patch('me')
   updateMe(@CurrentStaff() staff: StaffTokenPayload, @Body() body: UpdateOwnProfileDto): Promise<StaffSummary> {
     return this.staff.update(staff.sub, body);
   }
 
+  @AllowClinician()
   @Post('me/password')
   @HttpCode(HttpStatus.NO_CONTENT)
   changeMyPassword(@CurrentStaff() staff: StaffTokenPayload, @Body() body: ChangeOwnPasswordDto): Promise<void> {
     return this.staff.changePassword(staff.sub, body);
   }
 
+  @AllowClinician()
   @Put('me/avatar')
   setMyAvatar(@CurrentStaff() staff: StaffTokenPayload, @Body() body: UploadAvatarDto): Promise<StaffSummary> {
     return this.staff.setAvatar(staff.sub, body);
   }
 
+  @AllowClinician()
   @Delete('me/avatar')
   removeMyAvatar(@CurrentStaff() staff: StaffTokenPayload): Promise<StaffSummary> {
     return this.staff.removeAvatar(staff.sub);
@@ -74,6 +79,7 @@ export class StaffController {
   }
 
   /** Any signed-in staff member can see a colleague's photo (e.g. in the staff list). */
+  @AllowClinician()
   @Get(':id/avatar')
   async getAvatar(@Param('id', ParseUUIDPipe) id: string): Promise<StreamableFile> {
     const avatar = await this.staff.getAvatar(id);

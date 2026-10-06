@@ -19,6 +19,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AuthorisationModule } from './modules/authorisation/authorisation.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { CareCoordinationModule } from './modules/care-coordination/care-coordination.module';
+import { ClinicianModule } from './modules/clinician/clinician.module';
 import { ClinicalRecordsModule } from './modules/clinical-records/clinical-records.module';
 import { ConsentModule } from './modules/consent/consent.module';
 import { ConsultationModule } from './modules/consultation/consultation.module';
@@ -84,6 +85,7 @@ import { StaffModule } from './modules/staff/staff.module';
     PaymentModule,
     ConsultationModule,
     ClinicalRecordsModule,
+    ClinicianModule,
     CareCoordinationModule,
     MessagingModule,
     NotificationsModule,

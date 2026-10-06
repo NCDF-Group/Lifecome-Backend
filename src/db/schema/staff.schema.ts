@@ -1,6 +1,7 @@
 import { customType, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { staffAccountStatusEnum, staffRoleEnum } from './enums';
+import { providers } from './provider.schema';
 
 /**
  * Operations-console identity — deliberately separate from `userAccounts` (patient-only, the
@@ -16,6 +17,9 @@ export const staffAccounts = pgTable(
     passwordHash: text('password_hash').notNull(),
     fullName: text('full_name').notNull(),
     role: staffRoleEnum('role').notNull(),
+    /** For `clinician` accounts: the provider profile (the doctor's public listing, slots and
+     * bookings) this login works as. Null for every other role. */
+    providerId: uuid('provider_id').references(() => providers.id, { onDelete: 'set null' }),
     status: staffAccountStatusEnum('status').notNull().default('active'),
     lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
     /** Set when a profile photo exists (the bytes are in `staffAvatars`); doubles as a cache-buster
