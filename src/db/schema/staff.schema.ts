@@ -1,5 +1,6 @@
-import { customType, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
+import { bytea } from './columns';
 import { staffAccountStatusEnum, staffRoleEnum } from './enums';
 import { providers } from './provider.schema';
 
@@ -30,10 +31,6 @@ export const staffAccounts = pgTable(
   },
   (table) => [uniqueIndex('staff_accounts_email_idx').on(table.email)],
 );
-
-const bytea = customType<{ data: Buffer; driverData: Buffer }>({
-  dataType: () => 'bytea',
-});
 
 /**
  * Staff profile photos, kept out of `staffAccounts` so listing staff never drags image bytes along.

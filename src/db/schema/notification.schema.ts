@@ -1,7 +1,8 @@
 import { jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
-import { notificationDeliveryStatusEnum } from './enums';
+import { notificationDeliveryStatusEnum, patientNotificationKindEnum } from './enums';
 import { userAccounts } from './identity.schema';
+import { patients } from './patient.schema';
 
 /**
  * A record of what `NotificationsService.enqueue` handed to the queue, and what became of it —
@@ -22,4 +23,27 @@ export const notificationLogs = pgTable('notification_logs', {
   metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * A patient's in-app notification feed (the bell in the mobile app): "your booking is confirmed", "the care
+ * team replied". Unlike `notificationLogs` (delivery history for SMS/email), this is what the patient reads.
+ */
+export const patientNotifications = pgTable('patient_notifications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  patientId: uuid('patient_id')
+    .notNull()
+    .references(() => patients.id, { onDelete: 'cascade' }),
+  kind: patientNotificationKindEnum('kind').notNull(),
+  body: text('body').notNull(),
+  /** Parts of `body` the app shows in bold (a clinician's name, a date). */
+  highlights: text('highlights').array().notNull().default([]),
+  /** A quoted snippet shown in a box under the body (e.g. the care team's reply). */
+  preview: text('preview'),
+  actionLabel: text('action_label'),
+  /** Where the button leads: 'booking', 'records' or 'messages'. */
+  actionTarget: text('action_target'),
+  actionRef: uuid('action_ref'),
+  readAt: timestamp('read_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

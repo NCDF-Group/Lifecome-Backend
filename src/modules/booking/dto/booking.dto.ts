@@ -41,3 +41,7 @@ export const CreateAppointmentSchema = z.object({
     .optional(),
 });
 export class CreateAppointmentDto extends createZodDto(CreateAppointmentSchema) {}
+
+/** `POST /appointments` - the patient comes from the session token, never from the body. */
+export const CreateMyAppointmentSchema = CreateAppointmentSchema.omit({ patientId: true });
+export class CreateMyAppointmentDto extends createZodDto(CreateMyAppointmentSchema) {}

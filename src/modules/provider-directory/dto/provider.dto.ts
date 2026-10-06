@@ -20,7 +20,7 @@ export const CreateProviderSchema = z.object({
   displayName: z.string().min(1).max(200),
   specialty: z.string().min(1).max(120),
   languages: z.array(z.string().min(1)).default([]),
-  consultationModes: z.array(z.enum(['video', 'audio'])).default(['video']),
+  consultationModes: z.array(z.enum(['video', 'audio', 'in_person'])).default(['video']),
   city: z.string().max(100).optional(),
   state: z.string().max(100).optional(),
 });

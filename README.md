@@ -295,3 +295,27 @@ This scaffold stubs them behind interfaces so those decisions do not block build
 the service. Staff/operations-console auth, by contrast, is real — see "Operations console API"
 above — but it too is scrypt + hand-rolled JWT rather than a managed identity provider, which is
 fine for this scaffold but worth revisiting before a real production rollout.
+
+## Who can call what
+
+Every route is behind one of three guards - nothing patient or clinical is open to the internet:
+
+| Caller | Token | Routes |
+|---|---|---|
+| **Patient** (the mobile app) | `SESSION_JWT_SECRET` JWT from `/identity/login` | `/me/*` (profile, photo), `/appointments`, `/message-threads`, `/providers`, `/clinical-services`, `/scheduling/*`, `/payments/intents`, `/consultation`, `/payers`, `/eligibility` |
+| **Staff** (operations console) | `STAFF_JWT_SECRET` JWT from `/admin/auth/login` | `/admin/*`, plus clinical writes and provider/slot/catalogue management, limited by `@Roles(...)` |
+| **Clinician** (a staff role) | same as staff | `/clinician/*` only - `RolesGuard` refuses a clinician every other staff route unless it opts in with `@AllowClinician()` |
+
+Patient routes always act on the patient in the session token - there is no patient id in any URL or
+body, so one patient can never read or change another's data (someone else's appointment or thread is
+reported as "not found"). Idempotency keys are scoped to the caller.
+
+`POST /payments/webhook` is off until `PAYMENT_WEBHOOK_SECRET` is set (then it needs `x-webhook-secret`).
+While no payment gateway is wired into the app, set `ALLOW_SELF_CONFIRM_BOOKINGS=true` so patients can
+confirm a held booking themselves (no payment is taken); turn it off when payments go live.
+
+### Starter data
+
+`SEED_DEMO=yes npm run db:seed:demo` adds the four bookable services, four clinicians, two weeks of
+appointment times and (with `SEED_DOCTOR_PASSWORD`) a clinician login for the console's "My workspace".
+It is never run on deploy - run it by hand against a fresh database.

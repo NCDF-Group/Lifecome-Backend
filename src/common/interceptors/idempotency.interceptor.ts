@@ -45,7 +45,11 @@ export class IdempotencyInterceptor implements NestInterceptor {
       );
     }
 
-    const redisKey = `idempotency:${request.routeOptions?.url ?? request.url}:${key}`;
+    // Scoped to the caller: a key is only ever replayed for the same signed-in patient/staff member,
+    // so one person guessing or reusing another's key can never be handed that person's response.
+    const caller = request as FastifyRequest & { patientAccount?: { sub: string }; staff?: { sub: string } };
+    const subject = caller.patientAccount?.sub ?? caller.staff?.sub ?? 'anonymous';
+    const redisKey = `idempotency:${subject}:${request.routeOptions?.url ?? request.url}:${key}`;
 
     return from(this.redis.get(redisKey)).pipe(
       switchMap((cached) => {

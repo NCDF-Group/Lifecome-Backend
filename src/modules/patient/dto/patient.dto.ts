@@ -22,3 +22,11 @@ export class CreatePatientProfileDto extends createZodDto(CreatePatientProfileSc
 
 export const UpdatePatientProfileSchema = CreatePatientProfileSchema.partial().omit({ userAccountId: true });
 export class UpdatePatientProfileDto extends createZodDto(UpdatePatientProfileSchema) {}
+
+/** `PUT /me/profile` - the signed-in patient creates or updates their own profile. */
+export const UpsertMyProfileSchema = CreatePatientProfileSchema.omit({ userAccountId: true });
+export class UpsertMyProfileDto extends createZodDto(UpsertMyProfileSchema) {}
+
+/** `PATCH /me/profile` - any subset of the profile fields (the profile must already exist). */
+export const PatchMyProfileSchema = UpsertMyProfileSchema.partial();
+export class PatchMyProfileDto extends createZodDto(PatchMyProfileSchema) {}

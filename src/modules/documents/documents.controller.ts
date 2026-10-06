@@ -1,10 +1,14 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
+import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth/common-auth.module';
 import { CreateDocumentDto } from './dto/documents.dto';
 import { DocumentsService, type PatientDocument } from './documents.service';
 
 @ApiTags('documents')
+// Staff only until object storage and patient-side upload are designed - see DocumentsService.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('platform_administrator', 'clinical_administrator', 'clinician')
 @Controller('documents')
 export class DocumentsController {
   constructor(private readonly documents: DocumentsService) {}

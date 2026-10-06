@@ -1,31 +1,41 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { CreateThreadDto, SendMessageDto } from './dto/messaging.dto';
-import { MessagingService, type Message, type MessageThread } from './messaging.service';
+import { CurrentPatientAccount, PatientAuthGuard, type PatientAccountToken } from '../../common/auth/common-auth.module';
+import { CreateMyThreadDto, SendMessageDto } from './dto/messaging.dto';
+import { MessagingService, type Message, type MessageThread, type ThreadSummary } from './messaging.service';
 
+/** The signed-in patient's conversations with the care team. Always scoped to the session's patient. */
 @ApiTags('messaging')
+@UseGuards(PatientAuthGuard)
 @Controller('message-threads')
 export class MessagingController {
   constructor(private readonly messaging: MessagingService) {}
 
   @Post()
-  createThread(@Body() body: CreateThreadDto): Promise<MessageThread> {
-    return this.messaging.createThread(body);
+  createThread(
+    @CurrentPatientAccount() account: PatientAccountToken,
+    @Body() body: CreateMyThreadDto,
+  ): Promise<{ thread: MessageThread; message: Message }> {
+    return this.messaging.createThreadForPatient(account.sub, body);
   }
 
-  @Get('patients/:patientId')
-  listForPatient(@Param('patientId', ParseUUIDPipe) patientId: string): Promise<MessageThread[]> {
-    return this.messaging.listThreadsForPatient(patientId);
+  @Get()
+  list(@CurrentPatientAccount() account: PatientAccountToken): Promise<ThreadSummary[]> {
+    return this.messaging.listThreadsForPatient(account.sub);
   }
 
   @Get(':id/messages')
-  listMessages(@Param('id', ParseUUIDPipe) id: string): Promise<Message[]> {
-    return this.messaging.listMessages(id);
+  listMessages(@CurrentPatientAccount() account: PatientAccountToken, @Param('id', ParseUUIDPipe) id: string): Promise<Message[]> {
+    return this.messaging.listMessagesForPatient(account.sub, id);
   }
 
   @Post(':id/messages')
-  send(@Param('id', ParseUUIDPipe) id: string, @Body() body: SendMessageDto): Promise<Message> {
-    return this.messaging.send(id, body);
+  send(
+    @CurrentPatientAccount() account: PatientAccountToken,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SendMessageDto,
+  ): Promise<Message> {
+    return this.messaging.sendForPatient(account.sub, id, body);
   }
 }

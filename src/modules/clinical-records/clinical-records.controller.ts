@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
+import { JwtAuthGuard, Roles, RolesGuard } from '../../common/auth/common-auth.module';
 import { ClinicalRecordsService, type CarePlan, type ClinicalNote, type Encounter } from './clinical-records.service';
 import {
   AmendClinicalNoteDto,
@@ -16,6 +17,9 @@ import {
 } from './dto/clinical-records.dto';
 
 @ApiTags('clinical-records')
+// Clinical writes are for clinicians and clinical administrators only.
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('clinician', 'clinical_administrator')
 @Controller()
 export class ClinicalRecordsController {
   constructor(private readonly records: ClinicalRecordsService) {}

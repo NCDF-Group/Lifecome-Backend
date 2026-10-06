@@ -43,6 +43,14 @@ export class AppConfigService {
     return this.config.get('STAFF_JWT_SECRET', { infer: true });
   }
 
+  get allowSelfConfirmBookings(): boolean {
+    return this.config.get('ALLOW_SELF_CONFIRM_BOOKINGS', { infer: true });
+  }
+
+  get paymentWebhookSecret(): string | undefined {
+    return this.config.get('PAYMENT_WEBHOOK_SECRET', { infer: true });
+  }
+
   get paystackSecretKey(): string | undefined {
     return this.config.get('PAYSTACK_SECRET_KEY', { infer: true });
   }

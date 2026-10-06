@@ -30,6 +30,7 @@ import { IdentityModule } from './modules/identity/identity.module';
 import { MessagingModule } from './modules/messaging/messaging.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PatientModule } from './modules/patient/patient.module';
+import { PatientNotificationsModule } from './modules/patient-notifications/patient-notifications.module';
 import { PayerModule } from './modules/payer/payer.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProviderDirectoryModule } from './modules/provider-directory/provider-directory.module';
@@ -75,6 +76,7 @@ import { StaffModule } from './modules/staff/staff.module';
     AuditModule,
     IdentityModule,
     PatientModule,
+    PatientNotificationsModule,
     PayerModule,
     EligibilityModule,
     AuthorisationModule,

@@ -73,6 +73,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
       };
     }
 
+    // Plugin errors that are not Nest HttpExceptions but carry an HTTP status - notably
+    // @fastify/rate-limit's 429. Without this they would be reported as a 500.
+    const statusCode = (exception as { statusCode?: unknown } | null)?.statusCode;
+    if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 500) {
+      return {
+        status: statusCode,
+        body: {
+          error: {
+            code: statusCode === 429 ? 'RATE_LIMITED' : (HttpStatus[statusCode] ?? 'HTTP_ERROR'),
+            message: statusCode === 429 ? 'Too many requests. Please wait a moment and try again.' : ((exception as Error).message ?? 'Request failed.'),
+          },
+          correlationId,
+        },
+      };
+    }
+
     return {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       body: {

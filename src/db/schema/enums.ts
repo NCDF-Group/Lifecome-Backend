@@ -131,3 +131,6 @@ export const notificationDeliveryStatusEnum = pgEnum('notification_delivery_stat
   'sent',
   'failed',
 ]);
+
+/** What a patient's in-app notification is about - drives its icon and where its button leads. */
+export const patientNotificationKindEnum = pgEnum('patient_notification_kind', ['booking', 'message', 'support', 'record']);

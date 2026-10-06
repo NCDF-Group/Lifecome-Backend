@@ -1,10 +1,12 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
+import { PatientAuthGuard } from '../../common/auth/common-auth.module';
 import { CheckEligibilityDto } from './dto/eligibility.dto';
 import { EligibilityService, type EligibilityCheck } from './eligibility.service';
 
 @ApiTags('eligibility')
+@UseGuards(PatientAuthGuard)
 @Controller('eligibility')
 export class EligibilityController {
   constructor(private readonly eligibility: EligibilityService) {}

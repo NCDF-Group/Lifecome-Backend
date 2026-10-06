@@ -5,6 +5,7 @@ import { ConfigModule } from '../config/config.module';
 import { AppConfigService } from '../config/configuration';
 import { CurrentStaff } from './current-staff.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { PatientAuthGuard } from './patient-auth.guard';
 import { RolesGuard } from './roles.guard';
 
 /**
@@ -24,11 +25,13 @@ import { RolesGuard } from './roles.guard';
       }),
     }),
   ],
-  providers: [JwtAuthGuard, RolesGuard],
-  exports: [JwtModule, JwtAuthGuard, RolesGuard],
+  providers: [JwtAuthGuard, RolesGuard, PatientAuthGuard],
+  exports: [JwtModule, JwtAuthGuard, RolesGuard, PatientAuthGuard],
 })
 export class CommonAuthModule {}
 
-export { CurrentStaff, JwtAuthGuard, RolesGuard };
+export { CurrentStaff, JwtAuthGuard, PatientAuthGuard, RolesGuard };
+export { CurrentPatientAccount } from './current-patient-account.decorator';
+export type { PatientAccountToken } from './patient-auth.guard';
 export { AllowClinician, Roles } from './roles.decorator';
 export type { StaffRole, StaffTokenPayload } from './staff-token';
