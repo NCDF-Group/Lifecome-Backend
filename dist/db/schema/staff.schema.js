@@ -17,13 +17,19 @@ _export(exports, {
     }
 });
 const _pgcore = require("drizzle-orm/pg-core");
+const _columns = require("./columns");
 const _enums = require("./enums");
+const _providerschema = require("./provider.schema");
 const staffAccounts = (0, _pgcore.pgTable)('staff_accounts', {
     id: (0, _pgcore.uuid)('id').primaryKey().defaultRandom(),
     email: (0, _pgcore.text)('email').notNull(),
     passwordHash: (0, _pgcore.text)('password_hash').notNull(),
     fullName: (0, _pgcore.text)('full_name').notNull(),
     role: (0, _enums.staffRoleEnum)('role').notNull(),
+    /** For `clinician` accounts: the provider profile (the doctor's public listing, slots and
+     * bookings) this login works as. Null for every other role. */ providerId: (0, _pgcore.uuid)('provider_id').references(()=>_providerschema.providers.id, {
+        onDelete: 'set null'
+    }),
     status: (0, _enums.staffAccountStatusEnum)('status').notNull().default('active'),
     lastLoginAt: (0, _pgcore.timestamp)('last_login_at', {
         withTimezone: true
@@ -41,15 +47,12 @@ const staffAccounts = (0, _pgcore.pgTable)('staff_accounts', {
 }, (table)=>[
         (0, _pgcore.uniqueIndex)('staff_accounts_email_idx').on(table.email)
     ]);
-const bytea = (0, _pgcore.customType)({
-    dataType: ()=>'bytea'
-});
 const staffAvatars = (0, _pgcore.pgTable)('staff_avatars', {
     staffAccountId: (0, _pgcore.uuid)('staff_account_id').primaryKey().references(()=>staffAccounts.id, {
         onDelete: 'cascade'
     }),
     contentType: (0, _pgcore.text)('content_type').notNull(),
-    image: bytea('image').notNull(),
+    image: (0, _columns.bytea)('image').notNull(),
     updatedAt: (0, _pgcore.timestamp)('updated_at', {
         withTimezone: true
     }).notNull().defaultNow()

@@ -10,6 +10,7 @@ Object.defineProperty(exports, "ClinicalRecordsController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _clinicalrecordsservice = require("./clinical-records.service");
 const _clinicalrecordsdto = require("./dto/clinical-records.dto");
 function _ts_decorate(decorators, target, key, desc) {
@@ -192,6 +193,8 @@ _ts_decorate([
 ], ClinicalRecordsController.prototype, "reviewDiagnosticResult", null);
 ClinicalRecordsController = _ts_decorate([
     (0, _swagger.ApiTags)('clinical-records'),
+    (0, _common.UseGuards)(_commonauthmodule.JwtAuthGuard, _commonauthmodule.RolesGuard),
+    (0, _commonauthmodule.Roles)('clinician', 'clinical_administrator'),
     (0, _common.Controller)(),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [

@@ -9,11 +9,20 @@ function _export(target, all) {
     });
 }
 _export(exports, {
-    get CreateThreadDto () {
-        return CreateThreadDto;
+    get CreateMyThreadDto () {
+        return CreateMyThreadDto;
     },
-    get CreateThreadSchema () {
-        return CreateThreadSchema;
+    get CreateMyThreadSchema () {
+        return CreateMyThreadSchema;
+    },
+    get ListThreadsAdminQueryDto () {
+        return ListThreadsAdminQueryDto;
+    },
+    get ListThreadsAdminQuerySchema () {
+        return ListThreadsAdminQuerySchema;
+    },
+    get MessageTopicSchema () {
+        return MessageTopicSchema;
     },
     get SendMessageDto () {
         return SendMessageDto;
@@ -23,22 +32,29 @@ _export(exports, {
     }
 });
 const _zoddto = require("../../../common/validation/zod-dto");
+const _paginationdto = require("../../../common/dto/pagination.dto");
 const _zod = require("zod");
-const CreateThreadSchema = _zod.z.object({
-    patientId: _zod.z.uuid(),
-    subject: _zod.z.string().max(200).optional()
+const MessageTopicSchema = _zod.z.enum([
+    'booking_payments',
+    'online_appointment',
+    'clinic_visit',
+    'follow_up'
+]);
+const CreateMyThreadSchema = _zod.z.object({
+    topic: MessageTopicSchema,
+    body: _zod.z.string().trim().min(1).max(4000)
 });
-let CreateThreadDto = class CreateThreadDto extends (0, _zoddto.createZodDto)(CreateThreadSchema) {
+let CreateMyThreadDto = class CreateMyThreadDto extends (0, _zoddto.createZodDto)(CreateMyThreadSchema) {
 };
 const SendMessageSchema = _zod.z.object({
-    senderType: _zod.z.enum([
-        'patient',
-        'care_team'
-    ]),
-    senderId: _zod.z.uuid(),
-    body: _zod.z.string().min(1).max(4000)
+    body: _zod.z.string().trim().min(1).max(4000)
 });
 let SendMessageDto = class SendMessageDto extends (0, _zoddto.createZodDto)(SendMessageSchema) {
+};
+const ListThreadsAdminQuerySchema = _paginationdto.PaginationQuerySchema.extend({
+    topic: MessageTopicSchema.optional()
+});
+let ListThreadsAdminQueryDto = class ListThreadsAdminQueryDto extends (0, _zoddto.createZodDto)(ListThreadsAdminQuerySchema) {
 };
 
 //# sourceMappingURL=messaging.dto.js.map

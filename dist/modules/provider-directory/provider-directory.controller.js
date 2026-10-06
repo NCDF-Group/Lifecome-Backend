@@ -10,6 +10,7 @@ Object.defineProperty(exports, "ProviderDirectoryController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _providerdto = require("./dto/provider.dto");
 const _providerdirectoryservice = require("./provider-directory.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -44,7 +45,7 @@ let ProviderDirectoryController = class ProviderDirectoryController {
     /** View 12 — Doctor Profile. */ get(id) {
         return this.directory.getById(id);
     }
-    /** Provider onboarding (operations console, once built). */ create(body) {
+    /** Provider onboarding - operations console staff only. */ create(body) {
         return this.directory.create(body);
     }
     constructor(directory){
@@ -52,6 +53,7 @@ let ProviderDirectoryController = class ProviderDirectoryController {
     }
 };
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Get)(),
     _ts_param(0, (0, _common.Query)()),
     _ts_metadata("design:type", Function),
@@ -61,6 +63,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], ProviderDirectoryController.prototype, "list", null);
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Get)(':id'),
     _ts_param(0, (0, _common.Param)('id', _common.ParseUUIDPipe)),
     _ts_metadata("design:type", Function),
@@ -70,6 +73,8 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], ProviderDirectoryController.prototype, "get", null);
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.JwtAuthGuard, _commonauthmodule.RolesGuard),
+    (0, _commonauthmodule.Roles)('platform_administrator', 'clinical_administrator'),
     (0, _common.Post)(),
     _ts_param(0, (0, _common.Body)()),
     _ts_metadata("design:type", Function),

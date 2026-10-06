@@ -21,11 +21,23 @@ _export(exports, {
     get ListPatientsQuerySchema () {
         return ListPatientsQuerySchema;
     },
+    get PatchMyProfileDto () {
+        return PatchMyProfileDto;
+    },
+    get PatchMyProfileSchema () {
+        return PatchMyProfileSchema;
+    },
     get UpdatePatientProfileDto () {
         return UpdatePatientProfileDto;
     },
     get UpdatePatientProfileSchema () {
         return UpdatePatientProfileSchema;
+    },
+    get UpsertMyProfileDto () {
+        return UpsertMyProfileDto;
+    },
+    get UpsertMyProfileSchema () {
+        return UpsertMyProfileSchema;
     }
 });
 const _zoddto = require("../../../common/validation/zod-dto");
@@ -55,6 +67,14 @@ const UpdatePatientProfileSchema = CreatePatientProfileSchema.partial().omit({
     userAccountId: true
 });
 let UpdatePatientProfileDto = class UpdatePatientProfileDto extends (0, _zoddto.createZodDto)(UpdatePatientProfileSchema) {
+};
+const UpsertMyProfileSchema = CreatePatientProfileSchema.omit({
+    userAccountId: true
+});
+let UpsertMyProfileDto = class UpsertMyProfileDto extends (0, _zoddto.createZodDto)(UpsertMyProfileSchema) {
+};
+const PatchMyProfileSchema = UpsertMyProfileSchema.partial();
+let PatchMyProfileDto = class PatchMyProfileDto extends (0, _zoddto.createZodDto)(PatchMyProfileSchema) {
 };
 
 //# sourceMappingURL=patient.dto.js.map

@@ -10,6 +10,7 @@ Object.defineProperty(exports, "SchedulingController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _schedulingdto = require("./dto/scheduling.dto");
 const _schedulingservice = require("./scheduling.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -50,6 +51,7 @@ let SchedulingController = class SchedulingController {
     }
 };
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Get)('providers/:providerId/availability'),
     _ts_param(0, (0, _common.Param)('providerId', _common.ParseUUIDPipe)),
     _ts_metadata("design:type", Function),
@@ -59,6 +61,8 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], SchedulingController.prototype, "listAvailable", null);
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.JwtAuthGuard, _commonauthmodule.RolesGuard),
+    (0, _commonauthmodule.Roles)('platform_administrator', 'clinical_administrator'),
     (0, _common.Post)('slots'),
     _ts_param(0, (0, _common.Body)()),
     _ts_metadata("design:type", Function),
@@ -68,6 +72,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], SchedulingController.prototype, "createSlot", null);
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Post)('slots/hold'),
     _ts_param(0, (0, _common.Body)()),
     _ts_metadata("design:type", Function),

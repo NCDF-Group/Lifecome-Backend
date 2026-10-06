@@ -14,6 +14,7 @@ const _paginationdto = require("../../common/dto/pagination.dto");
 const _emailservice = require("../../common/email/email.service");
 const _templates = require("../../common/email/templates");
 const _appexception = require("../../common/errors/app-exception");
+const _imagetype = require("../../common/images/image-type");
 const _password = require("../../common/security/password");
 const _client = require("../../db/client");
 const _schema = require("../../db/schema");
@@ -49,7 +50,19 @@ function toSummary(account) {
     return summary;
 }
 let StaffService = class StaffService {
+    /** A clinician login must point at a real provider profile; no other role may carry one. */ async resolveProviderId(role, providerId) {
+        if (role !== 'clinician') return null;
+        if (!providerId) {
+            throw new _appexception.AppException('CLINICIAN_PROVIDER_REQUIRED', 'A clinician account must be linked to a provider profile.', _common.HttpStatus.BAD_REQUEST);
+        }
+        const [provider] = await this.db.select({
+            id: _schema.providers.id
+        }).from(_schema.providers).where((0, _drizzleorm.eq)(_schema.providers.id, providerId));
+        if (!provider) throw new _appexception.NotFoundAppException('Provider');
+        return providerId;
+    }
     async create(input) {
+        const providerId = await this.resolveProviderId(input.role, input.providerId);
         const [existing] = await this.db.select().from(_schema.staffAccounts).where((0, _drizzleorm.eq)(_schema.staffAccounts.email, input.email));
         if (existing) {
             throw new _appexception.AppException('STAFF_EMAIL_TAKEN', 'A staff account with this email already exists.', _common.HttpStatus.CONFLICT);
@@ -59,7 +72,8 @@ let StaffService = class StaffService {
             email: input.email,
             passwordHash,
             fullName: input.fullName,
-            role: input.role
+            role: input.role,
+            providerId
         }).returning();
         // Deliberately no password in this email — whoever created the account already set it and
         // shares it with the new staff member directly. EmailService no-ops if Brevo isn't configured.
@@ -94,9 +108,16 @@ let StaffService = class StaffService {
         return toSummary(account);
     }
     async update(id, input) {
-        await this.getById(id); // 404s early if missing
+        const current = await this.getById(id); // 404s early if missing
+        const patch = {
+            ...input
+        };
+        if (input.role !== undefined || input.providerId !== undefined) {
+            const role = input.role ?? current.role;
+            patch.providerId = await this.resolveProviderId(role, input.providerId === undefined ? current.providerId : input.providerId);
+        }
         const [updated] = await this.db.update(_schema.staffAccounts).set({
-            ...input,
+            ...patch,
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.staffAccounts.id, id)).returning();
         return toSummary(updated);
@@ -121,7 +142,7 @@ let StaffService = class StaffService {
         if (image.length === 0 || image.length > _staffdto.MAX_AVATAR_BYTES) {
             throw new _appexception.AppException('AVATAR_TOO_LARGE', 'Profile photos must be under 512 KB.', _common.HttpStatus.BAD_REQUEST);
         }
-        if (!matchesImageType(image, input.contentType)) {
+        if (!(0, _imagetype.matchesImageType)(image, input.contentType)) {
             throw new _appexception.AppException('AVATAR_INVALID_IMAGE', 'That file is not a valid JPEG, PNG or WebP image.', _common.HttpStatus.BAD_REQUEST);
         }
         await this.getById(id);
@@ -190,24 +211,5 @@ StaffService = _ts_decorate([
         typeof _emailservice.EmailService === "undefined" ? Object : _emailservice.EmailService
     ])
 ], StaffService);
-/** Checks the file's leading "magic" bytes against its declared type. */ function matchesImageType(image, contentType) {
-    switch(contentType){
-        case 'image/jpeg':
-            return image.length > 3 && image[0] === 0xff && image[1] === 0xd8 && image[2] === 0xff;
-        case 'image/png':
-            return image.subarray(0, 8).equals(Buffer.from([
-                0x89,
-                0x50,
-                0x4e,
-                0x47,
-                0x0d,
-                0x0a,
-                0x1a,
-                0x0a
-            ]));
-        case 'image/webp':
-            return image.length > 12 && image.toString('ascii', 0, 4) === 'RIFF' && image.toString('ascii', 8, 12) === 'WEBP';
-    }
-}
 
 //# sourceMappingURL=staff.service.js.map

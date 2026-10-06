@@ -10,6 +10,7 @@ Object.defineProperty(exports, "DocumentsController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _documentsdto = require("./dto/documents.dto");
 const _documentsservice = require("./documents.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -78,6 +79,8 @@ _ts_decorate([
 ], DocumentsController.prototype, "signedUrl", null);
 DocumentsController = _ts_decorate([
     (0, _swagger.ApiTags)('documents'),
+    (0, _common.UseGuards)(_commonauthmodule.JwtAuthGuard, _commonauthmodule.RolesGuard),
+    (0, _commonauthmodule.Roles)('platform_administrator', 'clinical_administrator', 'clinician'),
     (0, _common.Controller)('documents'),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [

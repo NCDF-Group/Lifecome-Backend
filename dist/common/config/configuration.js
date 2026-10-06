@@ -69,6 +69,16 @@ let AppConfigService = class AppConfigService {
             infer: true
         });
     }
+    get allowSelfConfirmBookings() {
+        return this.config.get('ALLOW_SELF_CONFIRM_BOOKINGS', {
+            infer: true
+        });
+    }
+    get paymentWebhookSecret() {
+        return this.config.get('PAYMENT_WEBHOOK_SECRET', {
+            infer: true
+        });
+    }
     get paystackSecretKey() {
         return this.config.get('PAYSTACK_SECRET_KEY', {
             infer: true

@@ -10,6 +10,7 @@ Object.defineProperty(exports, "PayerModule", {
 });
 const _common = require("@nestjs/common");
 const _auditmodule = require("../audit/audit.module");
+const _patientmodule = require("../patient/patient.module");
 const _fakepayeradapter = require("./adapters/fake-payer.adapter");
 const _payeradapterregistry = require("./adapters/payer-adapter.registry");
 const _payercontroller = require("./payer.controller");
@@ -32,7 +33,8 @@ let PayerModule = class PayerModule {
 PayerModule = _ts_decorate([
     (0, _common.Module)({
         imports: [
-            _auditmodule.AuditModule
+            _auditmodule.AuditModule,
+            _patientmodule.PatientModule
         ],
         controllers: [
             _payercontroller.PayerController

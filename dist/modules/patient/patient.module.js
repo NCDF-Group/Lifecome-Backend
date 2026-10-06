@@ -10,7 +10,7 @@ Object.defineProperty(exports, "PatientModule", {
 });
 const _common = require("@nestjs/common");
 const _patientadmincontroller = require("./patient-admin.controller");
-const _patientcontroller = require("./patient.controller");
+const _patientmecontroller = require("./patient-me.controller");
 const _patientservice = require("./patient.service");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -30,7 +30,7 @@ let PatientModule = class PatientModule {
 PatientModule = _ts_decorate([
     (0, _common.Module)({
         controllers: [
-            _patientcontroller.PatientController,
+            _patientmecontroller.PatientMeController,
             _patientadmincontroller.PatientAdminController
         ],
         providers: [

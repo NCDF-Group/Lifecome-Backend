@@ -10,6 +10,7 @@ Object.defineProperty(exports, "ServiceCatalogueController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _servicecataloguedto = require("./dto/service-catalogue.dto");
 const _servicecatalogueservice = require("./service-catalogue.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -47,12 +48,15 @@ let ServiceCatalogueController = class ServiceCatalogueController {
     }
 };
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Get)(),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", []),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], ServiceCatalogueController.prototype, "list", null);
 _ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.JwtAuthGuard, _commonauthmodule.RolesGuard),
+    (0, _commonauthmodule.Roles)('platform_administrator'),
     (0, _common.Post)(),
     _ts_param(0, (0, _common.Body)()),
     _ts_metadata("design:type", Function),

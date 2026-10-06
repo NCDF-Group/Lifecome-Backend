@@ -10,6 +10,7 @@ Object.defineProperty(exports, "MessagingController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _messagingdto = require("./dto/messaging.dto");
 const _messagingservice = require("./messaging.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -36,17 +37,17 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let MessagingController = class MessagingController {
-    createThread(body) {
-        return this.messaging.createThread(body);
+    createThread(account, body) {
+        return this.messaging.createThreadForPatient(account.sub, body);
     }
-    listForPatient(patientId) {
-        return this.messaging.listThreadsForPatient(patientId);
+    list(account) {
+        return this.messaging.listThreadsForPatient(account.sub);
     }
-    listMessages(id) {
-        return this.messaging.listMessages(id);
+    listMessages(account, id) {
+        return this.messaging.listMessagesForPatient(account.sub, id);
     }
-    send(id, body) {
-        return this.messaging.send(id, body);
+    send(account, id, body) {
+        return this.messaging.sendForPatient(account.sub, id, body);
     }
     constructor(messaging){
         this.messaging = messaging;
@@ -54,37 +55,43 @@ let MessagingController = class MessagingController {
 };
 _ts_decorate([
     (0, _common.Post)(),
-    _ts_param(0, (0, _common.Body)()),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Body)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
-        typeof _messagingdto.CreateThreadDto === "undefined" ? Object : _messagingdto.CreateThreadDto
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
+        typeof _messagingdto.CreateMyThreadDto === "undefined" ? Object : _messagingdto.CreateMyThreadDto
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], MessagingController.prototype, "createThread", null);
 _ts_decorate([
-    (0, _common.Get)('patients/:patientId'),
-    _ts_param(0, (0, _common.Param)('patientId', _common.ParseUUIDPipe)),
+    (0, _common.Get)(),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
-        String
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
-], MessagingController.prototype, "listForPatient", null);
+], MessagingController.prototype, "list", null);
 _ts_decorate([
     (0, _common.Get)(':id/messages'),
-    _ts_param(0, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Param)('id', _common.ParseUUIDPipe)),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
         String
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], MessagingController.prototype, "listMessages", null);
 _ts_decorate([
     (0, _common.Post)(':id/messages'),
-    _ts_param(0, (0, _common.Param)('id', _common.ParseUUIDPipe)),
-    _ts_param(1, (0, _common.Body)()),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    _ts_param(2, (0, _common.Body)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
         String,
         typeof _messagingdto.SendMessageDto === "undefined" ? Object : _messagingdto.SendMessageDto
     ]),
@@ -92,6 +99,7 @@ _ts_decorate([
 ], MessagingController.prototype, "send", null);
 MessagingController = _ts_decorate([
     (0, _swagger.ApiTags)('messaging'),
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Controller)('message-threads'),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [

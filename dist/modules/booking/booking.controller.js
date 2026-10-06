@@ -10,6 +10,7 @@ Object.defineProperty(exports, "BookingController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _idempotentdecorator = require("../../common/interceptors/idempotent.decorator");
 const _bookingservice = require("./booking.service");
 const _bookingdto = require("./dto/booking.dto");
@@ -37,17 +38,20 @@ function _ts_param(paramIndex, decorator) {
     };
 }
 let BookingController = class BookingController {
-    create(body) {
-        return this.booking.create(body);
+    create(account, body) {
+        return this.booking.createForPatient(account.sub, body);
     }
-    get(id) {
-        return this.booking.getById(id);
+    list(account) {
+        return this.booking.listForPatient(account.sub);
     }
-    confirm(id) {
-        return this.booking.confirm(id);
+    get(account, id) {
+        return this.booking.getForPatient(account.sub, id);
     }
-    cancel(id) {
-        return this.booking.cancel(id);
+    confirm(account, id) {
+        return this.booking.confirmForPatient(account.sub, id);
+    }
+    cancel(account, id) {
+        return this.booking.cancelForPatient(account.sub, id);
     }
     constructor(booking){
         this.booking = booking;
@@ -56,18 +60,31 @@ let BookingController = class BookingController {
 _ts_decorate([
     (0, _common.Post)(),
     (0, _idempotentdecorator.Idempotent)(),
-    _ts_param(0, (0, _common.Body)()),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Body)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
-        typeof _bookingdto.CreateAppointmentDto === "undefined" ? Object : _bookingdto.CreateAppointmentDto
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
+        typeof _bookingdto.CreateMyAppointmentDto === "undefined" ? Object : _bookingdto.CreateMyAppointmentDto
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], BookingController.prototype, "create", null);
 _ts_decorate([
-    (0, _common.Get)(':id'),
-    _ts_param(0, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    (0, _common.Get)(),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], BookingController.prototype, "list", null);
+_ts_decorate([
+    (0, _common.Get)(':id'),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
         String
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
@@ -75,24 +92,29 @@ _ts_decorate([
 _ts_decorate([
     (0, _common.Post)(':id/confirm'),
     (0, _idempotentdecorator.Idempotent)(),
-    _ts_param(0, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Param)('id', _common.ParseUUIDPipe)),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
         String
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], BookingController.prototype, "confirm", null);
 _ts_decorate([
     (0, _common.Post)(':id/cancel'),
-    _ts_param(0, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Param)('id', _common.ParseUUIDPipe)),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
         String
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], BookingController.prototype, "cancel", null);
 BookingController = _ts_decorate([
     (0, _swagger.ApiTags)('booking'),
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Controller)('appointments'),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [

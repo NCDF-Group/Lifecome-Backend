@@ -27,6 +27,7 @@ const _authmodule = require("./modules/auth/auth.module");
 const _authorisationmodule = require("./modules/authorisation/authorisation.module");
 const _bookingmodule = require("./modules/booking/booking.module");
 const _carecoordinationmodule = require("./modules/care-coordination/care-coordination.module");
+const _clinicianmodule = require("./modules/clinician/clinician.module");
 const _clinicalrecordsmodule = require("./modules/clinical-records/clinical-records.module");
 const _consentmodule = require("./modules/consent/consent.module");
 const _consultationmodule = require("./modules/consultation/consultation.module");
@@ -37,6 +38,7 @@ const _identitymodule = require("./modules/identity/identity.module");
 const _messagingmodule = require("./modules/messaging/messaging.module");
 const _notificationsmodule = require("./modules/notifications/notifications.module");
 const _patientmodule = require("./modules/patient/patient.module");
+const _patientnotificationsmodule = require("./modules/patient-notifications/patient-notifications.module");
 const _payermodule = require("./modules/payer/payer.module");
 const _paymentmodule = require("./modules/payment/payment.module");
 const _providerdirectorymodule = require("./modules/provider-directory/provider-directory.module");
@@ -105,6 +107,7 @@ AppModule = _ts_decorate([
             _auditmodule.AuditModule,
             _identitymodule.IdentityModule,
             _patientmodule.PatientModule,
+            _patientnotificationsmodule.PatientNotificationsModule,
             _payermodule.PayerModule,
             _eligibilitymodule.EligibilityModule,
             _authorisationmodule.AuthorisationModule,
@@ -115,6 +118,7 @@ AppModule = _ts_decorate([
             _paymentmodule.PaymentModule,
             _consultationmodule.ConsultationModule,
             _clinicalrecordsmodule.ClinicalRecordsModule,
+            _clinicianmodule.ClinicianModule,
             _carecoordinationmodule.CareCoordinationModule,
             _messagingmodule.MessagingModule,
             _notificationsmodule.NotificationsModule,

@@ -13,7 +13,9 @@ const _drizzleorm = require("drizzle-orm");
 const _paginationdto = require("../../common/dto/pagination.dto");
 const _client = require("../../db/client");
 const _schema = require("../../db/schema");
+const _avatardto = require("../../common/dto/avatar.dto");
 const _appexception = require("../../common/errors/app-exception");
+const _imagetype = require("../../common/images/image-type");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") {
@@ -86,6 +88,103 @@ let PatientService = class PatientService {
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.patients.id, id)).returning();
         return updated;
+    }
+    // ---- The signed-in patient's own data (`/me`) ----------------------------------------------
+    async getMe(accountId) {
+        const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.id, accountId));
+        if (!account) throw new _appexception.NotFoundAppException('Account');
+        const profile = await this.getByUserAccountId(accountId) ?? null;
+        return {
+            account: {
+                id: account.id,
+                email: account.email,
+                phoneNumber: account.phoneNumber,
+                status: account.status
+            },
+            profile,
+            displayName: profile ? `${profile.firstName} ${profile.lastName}`.trim() : null
+        };
+    }
+    /** The patient row for a signed-in account, or a 409 telling the app to finish the profile first. */ async requireProfile(accountId) {
+        const profile = await this.getByUserAccountId(accountId);
+        if (!profile) {
+            throw new _appexception.AppException('PROFILE_REQUIRED', 'Finish setting up your profile first.', _common.HttpStatus.CONFLICT);
+        }
+        return profile;
+    }
+    /** Creates the profile on first call, updates it afterwards - idempotent for the app's sign-up step. */ async upsertMyProfile(accountId, input) {
+        const existing = await this.getByUserAccountId(accountId);
+        if (existing) {
+            const [updated] = await this.db.update(_schema.patients).set({
+                ...input,
+                updatedAt: new Date()
+            }).where((0, _drizzleorm.eq)(_schema.patients.id, existing.id)).returning();
+            return updated;
+        }
+        const [created] = await this.db.insert(_schema.patients).values({
+            ...input,
+            userAccountId: accountId
+        }).returning();
+        return created;
+    }
+    async patchMyProfile(accountId, input) {
+        const existing = await this.requireProfile(accountId);
+        const [updated] = await this.db.update(_schema.patients).set({
+            ...input,
+            updatedAt: new Date()
+        }).where((0, _drizzleorm.eq)(_schema.patients.id, existing.id)).returning();
+        return updated;
+    }
+    async setMyAvatar(accountId, input) {
+        const image = Buffer.from(input.data, 'base64');
+        if (image.length === 0 || image.length > _avatardto.MAX_AVATAR_BYTES) {
+            throw new _appexception.AppException('AVATAR_TOO_LARGE', 'Profile photos must be under 512 KB.', _common.HttpStatus.BAD_REQUEST);
+        }
+        if (!(0, _imagetype.matchesImageType)(image, input.contentType)) {
+            throw new _appexception.AppException('AVATAR_INVALID_IMAGE', 'That file is not a valid JPEG, PNG or WebP image.', _common.HttpStatus.BAD_REQUEST);
+        }
+        const profile = await this.requireProfile(accountId);
+        const now = new Date();
+        return this.db.transaction(async (tx)=>{
+            await tx.insert(_schema.patientAvatars).values({
+                patientId: profile.id,
+                contentType: input.contentType,
+                image,
+                updatedAt: now
+            }).onConflictDoUpdate({
+                target: _schema.patientAvatars.patientId,
+                set: {
+                    contentType: input.contentType,
+                    image,
+                    updatedAt: now
+                }
+            });
+            const [updated] = await tx.update(_schema.patients).set({
+                avatarUpdatedAt: now,
+                updatedAt: now
+            }).where((0, _drizzleorm.eq)(_schema.patients.id, profile.id)).returning();
+            return updated;
+        });
+    }
+    async removeMyAvatar(accountId) {
+        const profile = await this.requireProfile(accountId);
+        return this.db.transaction(async (tx)=>{
+            await tx.delete(_schema.patientAvatars).where((0, _drizzleorm.eq)(_schema.patientAvatars.patientId, profile.id));
+            const [updated] = await tx.update(_schema.patients).set({
+                avatarUpdatedAt: null,
+                updatedAt: new Date()
+            }).where((0, _drizzleorm.eq)(_schema.patients.id, profile.id)).returning();
+            return updated;
+        });
+    }
+    async getMyAvatar(accountId) {
+        const profile = await this.requireProfile(accountId);
+        const [avatar] = await this.db.select({
+            contentType: _schema.patientAvatars.contentType,
+            image: _schema.patientAvatars.image
+        }).from(_schema.patientAvatars).where((0, _drizzleorm.eq)(_schema.patientAvatars.patientId, profile.id));
+        if (!avatar) throw new _appexception.NotFoundAppException('Profile photo');
+        return avatar;
     }
     constructor(db){
         this.db = db;

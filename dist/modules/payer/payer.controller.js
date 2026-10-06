@@ -10,7 +10,9 @@ Object.defineProperty(exports, "PayerController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _idempotentdecorator = require("../../common/interceptors/idempotent.decorator");
+const _patientservice = require("../patient/patient.service");
 const _payerdto = require("./dto/payer.dto");
 const _payerservice = require("./payer.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -40,11 +42,14 @@ let PayerController = class PayerController {
     /** View 06 — Select Your HMO. LifeCome HMO may be listed first via `displayOrder`, never hard-coded. */ list() {
         return this.payerService.listParticipatingPayers();
     }
-    /** View 07 — Verify HMO Membership. */ verifyMembership(body) {
-        return this.payerService.verifyMembership(body.patientId, body.payerCode, body.memberId);
+    /** View 07 — Verify HMO Membership. */ async verifyMembership(account, body) {
+        // The patient comes from the session, never the body - nobody can verify a membership for someone else.
+        const patient = await this.patients.requireProfile(account.sub);
+        return this.payerService.verifyMembership(patient.id, body.payerCode, body.memberId);
     }
-    constructor(payerService){
+    constructor(payerService, patients){
         this.payerService = payerService;
+        this.patients = patients;
     }
 };
 _ts_decorate([
@@ -56,19 +61,23 @@ _ts_decorate([
 _ts_decorate([
     (0, _common.Post)('verify-membership'),
     (0, _idempotentdecorator.Idempotent)(),
-    _ts_param(0, (0, _common.Body)()),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Body)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
         typeof _payerdto.VerifyMembershipDto === "undefined" ? Object : _payerdto.VerifyMembershipDto
     ]),
-    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+    _ts_metadata("design:returntype", Promise)
 ], PayerController.prototype, "verifyMembership", null);
 PayerController = _ts_decorate([
     (0, _swagger.ApiTags)('payer'),
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Controller)('payers'),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
-        typeof _payerservice.PayerService === "undefined" ? Object : _payerservice.PayerService
+        typeof _payerservice.PayerService === "undefined" ? Object : _payerservice.PayerService,
+        typeof _patientservice.PatientService === "undefined" ? Object : _patientservice.PatientService
     ])
 ], PayerController);
 

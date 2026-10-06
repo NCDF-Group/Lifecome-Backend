@@ -28,6 +28,11 @@ const appointments = (0, _pgcore.pgTable)('appointments', {
     status: (0, _enums.bookingStatusEnum)('status').notNull().default('slot_held'),
     authorisationId: (0, _pgcore.uuid)('authorisation_id').references(()=>_eligibilityschema.authorisations.id),
     presentingConcern: (0, _pgcore.text)('presenting_concern'),
+    /** How the patient is paying / being covered ("Choose your access"). */ fundingRoute: (0, _enums.fundingRouteEnum)('funding_route').notNull().default('pay_per_visit'),
+    /** For `in_person` visits: the Smart GP clinic's city and name. */ locationCity: (0, _pgcore.text)('location_city'),
+    clinicName: (0, _pgcore.text)('clinic_name'),
+    /** The "Prepare for ..." intake: symptoms/reason, medicines and allergies, accessibility
+   * support, callback number, where the patient will be (online), remote-assessment consent. */ intake: (0, _pgcore.jsonb)('intake').$type(),
     createdAt: (0, _pgcore.timestamp)('created_at', {
         withTimezone: true
     }).notNull().defaultNow(),

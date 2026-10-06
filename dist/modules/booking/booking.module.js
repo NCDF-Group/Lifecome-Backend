@@ -9,6 +9,8 @@ Object.defineProperty(exports, "BookingModule", {
     }
 });
 const _common = require("@nestjs/common");
+const _patientmodule = require("../patient/patient.module");
+const _patientnotificationsmodule = require("../patient-notifications/patient-notifications.module");
 const _schedulingmodule = require("../scheduling/scheduling.module");
 const _bookingadmincontroller = require("./booking-admin.controller");
 const _bookingcontroller = require("./booking.controller");
@@ -31,7 +33,9 @@ let BookingModule = class BookingModule {
 BookingModule = _ts_decorate([
     (0, _common.Module)({
         imports: [
-            _schedulingmodule.SchedulingModule
+            _schedulingmodule.SchedulingModule,
+            _patientmodule.PatientModule,
+            _patientnotificationsmodule.PatientNotificationsModule
         ],
         controllers: [
             _bookingcontroller.BookingController,

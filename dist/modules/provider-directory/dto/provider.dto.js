@@ -63,7 +63,8 @@ const CreateProviderSchema = _zod.z.object({
     languages: _zod.z.array(_zod.z.string().min(1)).default([]),
     consultationModes: _zod.z.array(_zod.z.enum([
         'video',
-        'audio'
+        'audio',
+        'in_person'
     ])).default([
         'video'
     ]),

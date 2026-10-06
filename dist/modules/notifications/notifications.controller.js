@@ -10,6 +10,7 @@ Object.defineProperty(exports, "NotificationsController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _idempotentdecorator = require("../../common/interceptors/idempotent.decorator");
 const _notificationsdto = require("./dto/notifications.dto");
 const _notificationsservice = require("./notifications.service");
@@ -56,6 +57,8 @@ _ts_decorate([
 ], NotificationsController.prototype, "enqueue", null);
 NotificationsController = _ts_decorate([
     (0, _swagger.ApiTags)('notifications'),
+    (0, _common.UseGuards)(_commonauthmodule.JwtAuthGuard, _commonauthmodule.RolesGuard),
+    (0, _commonauthmodule.Roles)('platform_administrator'),
     (0, _common.Controller)('notifications'),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [

@@ -43,6 +43,9 @@ const envSchema = _zod.z.object({
     // relevant module (payment, notifications, consultation) fails fast if it is actually used
     // without one configured — see each module's README.
     PAYSTACK_SECRET_KEY: _zod.z.string().optional(),
+    // Shared secret the payment gateway's webhook must present (`x-webhook-secret`). With it unset the
+    // webhook is switched off entirely - an open webhook would let anyone mark a booking paid.
+    PAYMENT_WEBHOOK_SECRET: _zod.z.preprocess((value)=>value === '' ? undefined : value, _zod.z.string().min(16).optional()),
     FLUTTERWAVE_SECRET_KEY: _zod.z.string().optional(),
     TERMII_API_KEY: _zod.z.string().optional(),
     // OTP delivery via httpSMS (httpsms.com) — see common/sms/sms.service.ts. Both must be set
@@ -55,6 +58,10 @@ const envSchema = _zod.z.object({
     BREVO_API_KEY: _zod.z.string().optional(),
     BREVO_SENDER_EMAIL: _zod.z.string().optional(),
     BREVO_SENDER_NAME: _zod.z.string().default('LifeCome Live'),
+    // Until a payment provider is wired into the app, nothing marks a booking paid, so a patient could
+    // never complete one. With this on, a patient may confirm their own held booking directly (no
+    // payment taken). Leave OFF once Paystack/Flutterwave confirmation is live.
+    ALLOW_SELF_CONFIRM_BOOKINGS: _zod.z.stringbool().default(false),
     LIVEKIT_API_KEY: _zod.z.string().optional(),
     LIVEKIT_API_SECRET: _zod.z.string().optional(),
     LIVEKIT_URL: _zod.z.string().optional()

@@ -18,6 +18,12 @@ _export(exports, {
     get CreateAppointmentSchema () {
         return CreateAppointmentSchema;
     },
+    get CreateMyAppointmentDto () {
+        return CreateMyAppointmentDto;
+    },
+    get CreateMyAppointmentSchema () {
+        return CreateMyAppointmentSchema;
+    },
     get ListAppointmentsQueryDto () {
         return ListAppointmentsQueryDto;
     },
@@ -50,11 +56,33 @@ const CreateAppointmentSchema = _zod.z.object({
     availabilitySlotId: _zod.z.uuid(),
     consultationMode: _zod.z.enum([
         'video',
-        'audio'
+        'audio',
+        'in_person'
     ]).default('video'),
-    presentingConcern: _zod.z.string().max(2000).optional()
+    presentingConcern: _zod.z.string().max(2000).optional(),
+    fundingRoute: _zod.z.enum([
+        'pay_per_visit',
+        'lifecome_benefits',
+        'workplace',
+        'membership'
+    ]).default('pay_per_visit'),
+    /** In-person visits only. */ locationCity: _zod.z.string().max(100).optional(),
+    clinicName: _zod.z.string().max(200).optional(),
+    intake: _zod.z.object({
+        reason: _zod.z.string().max(2000).optional(),
+        medicinesAndAllergies: _zod.z.string().max(2000).optional(),
+        accessibilitySupport: _zod.z.string().max(1000).optional(),
+        callbackNumber: _zod.z.string().max(40).optional(),
+        patientLocation: _zod.z.string().max(500).optional(),
+        understoodRemoteLimits: _zod.z.boolean().optional()
+    }).optional()
 });
 let CreateAppointmentDto = class CreateAppointmentDto extends (0, _zoddto.createZodDto)(CreateAppointmentSchema) {
+};
+const CreateMyAppointmentSchema = CreateAppointmentSchema.omit({
+    patientId: true
+});
+let CreateMyAppointmentDto = class CreateMyAppointmentDto extends (0, _zoddto.createZodDto)(CreateMyAppointmentSchema) {
 };
 
 //# sourceMappingURL=booking.dto.js.map

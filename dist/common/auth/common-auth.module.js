@@ -9,14 +9,23 @@ function _export(target, all) {
     });
 }
 _export(exports, {
+    get AllowClinician () {
+        return _rolesdecorator.AllowClinician;
+    },
     get CommonAuthModule () {
         return CommonAuthModule;
+    },
+    get CurrentPatientAccount () {
+        return _currentpatientaccountdecorator.CurrentPatientAccount;
     },
     get CurrentStaff () {
         return _currentstaffdecorator.CurrentStaff;
     },
     get JwtAuthGuard () {
         return _jwtauthguard.JwtAuthGuard;
+    },
+    get PatientAuthGuard () {
+        return _patientauthguard.PatientAuthGuard;
     },
     get Roles () {
         return _rolesdecorator.Roles;
@@ -31,7 +40,9 @@ const _configmodule = require("../config/config.module");
 const _configuration = require("../config/configuration");
 const _currentstaffdecorator = require("./current-staff.decorator");
 const _jwtauthguard = require("./jwt-auth.guard");
+const _patientauthguard = require("./patient-auth.guard");
 const _rolesguard = require("./roles.guard");
+const _currentpatientaccountdecorator = require("./current-patient-account.decorator");
 const _rolesdecorator = require("./roles.decorator");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -69,12 +80,14 @@ CommonAuthModule = _ts_decorate([
         ],
         providers: [
             _jwtauthguard.JwtAuthGuard,
-            _rolesguard.RolesGuard
+            _rolesguard.RolesGuard,
+            _patientauthguard.PatientAuthGuard
         ],
         exports: [
             _jwt.JwtModule,
             _jwtauthguard.JwtAuthGuard,
-            _rolesguard.RolesGuard
+            _rolesguard.RolesGuard,
+            _patientauthguard.PatientAuthGuard
         ]
     })
 ], CommonAuthModule);

@@ -9,6 +9,9 @@ Object.defineProperty(exports, "MessagingModule", {
     }
 });
 const _common = require("@nestjs/common");
+const _patientmodule = require("../patient/patient.module");
+const _patientnotificationsmodule = require("../patient-notifications/patient-notifications.module");
+const _messagingadmincontroller = require("./messaging-admin.controller");
 const _messagingcontroller = require("./messaging.controller");
 const _messagingservice = require("./messaging.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -28,8 +31,13 @@ let MessagingModule = class MessagingModule {
 };
 MessagingModule = _ts_decorate([
     (0, _common.Module)({
+        imports: [
+            _patientmodule.PatientModule,
+            _patientnotificationsmodule.PatientNotificationsModule
+        ],
         controllers: [
-            _messagingcontroller.MessagingController
+            _messagingcontroller.MessagingController,
+            _messagingadmincontroller.MessagingAdminController
         ],
         providers: [
             _messagingservice.MessagingService

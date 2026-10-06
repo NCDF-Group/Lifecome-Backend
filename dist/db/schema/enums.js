@@ -42,11 +42,17 @@ _export(exports, {
     get eligibilityStatusEnum () {
         return eligibilityStatusEnum;
     },
+    get fundingRouteEnum () {
+        return fundingRouteEnum;
+    },
     get membershipVerificationStatusEnum () {
         return membershipVerificationStatusEnum;
     },
     get notificationDeliveryStatusEnum () {
         return notificationDeliveryStatusEnum;
+    },
+    get patientNotificationKindEnum () {
+        return patientNotificationKindEnum;
     },
     get payerIntegrationModeEnum () {
         return payerIntegrationModeEnum;
@@ -120,7 +126,14 @@ const consultationStatusEnum = (0, _pgcore.pgEnum)('consultation_status', [
 ]);
 const consultationModeEnum = (0, _pgcore.pgEnum)('consultation_mode', [
     'video',
-    'audio'
+    'audio',
+    'in_person'
+]);
+const fundingRouteEnum = (0, _pgcore.pgEnum)('funding_route', [
+    'pay_per_visit',
+    'lifecome_benefits',
+    'workplace',
+    'membership'
 ]);
 const clinicalNoteStatusEnum = (0, _pgcore.pgEnum)('clinical_note_status', [
     'draft',
@@ -175,7 +188,9 @@ const staffRoleEnum = (0, _pgcore.pgEnum)('staff_role', [
     'platform_administrator',
     'clinical_administrator',
     'hmo_operations',
-    'support_agent'
+    'support_agent',
+    // A doctor. Sees only the clinician workspace (`/clinician/*`), never the admin endpoints - see RolesGuard.
+    'clinician'
 ]);
 const staffAccountStatusEnum = (0, _pgcore.pgEnum)('staff_account_status', [
     'active',
@@ -185,6 +200,12 @@ const notificationDeliveryStatusEnum = (0, _pgcore.pgEnum)('notification_deliver
     'queued',
     'sent',
     'failed'
+]);
+const patientNotificationKindEnum = (0, _pgcore.pgEnum)('patient_notification_kind', [
+    'booking',
+    'message',
+    'support',
+    'record'
 ]);
 
 //# sourceMappingURL=enums.js.map

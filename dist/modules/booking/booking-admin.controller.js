@@ -41,7 +41,7 @@ let BookingAdminController = class BookingAdminController {
         return this.booking.adminList(query);
     }
     get(id) {
-        return this.booking.getById(id);
+        return this.booking.adminGet(id);
     }
     constructor(booking){
         this.booking = booking;

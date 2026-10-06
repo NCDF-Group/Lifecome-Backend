@@ -19,7 +19,6 @@ _export(exports, {
 const _zoddto = require("../../../common/validation/zod-dto");
 const _zod = require("zod");
 const VerifyMembershipSchema = _zod.z.object({
-    patientId: _zod.z.uuid(),
     payerCode: _zod.z.string().min(1),
     memberId: _zod.z.string().min(1)
 });

@@ -28,7 +28,7 @@ _export(exports, {
         return ListStaffQuerySchema;
     },
     get MAX_AVATAR_BYTES () {
-        return MAX_AVATAR_BYTES;
+        return _avatardto.MAX_AVATAR_BYTES;
     },
     get StaffRoleSchema () {
         return StaffRoleSchema;
@@ -49,20 +49,19 @@ _export(exports, {
         return UpdateStaffSchema;
     },
     get UploadAvatarDto () {
-        return UploadAvatarDto;
-    },
-    get UploadAvatarSchema () {
-        return UploadAvatarSchema;
+        return _avatardto.UploadAvatarDto;
     }
 });
 const _zod = require("zod");
 const _zoddto = require("../../../common/validation/zod-dto");
 const _paginationdto = require("../../../common/dto/pagination.dto");
+const _avatardto = require("../../../common/dto/avatar.dto");
 const StaffRoleSchema = _zod.z.enum([
     'platform_administrator',
     'clinical_administrator',
     'hmo_operations',
-    'support_agent'
+    'support_agent',
+    'clinician'
 ]);
 const StaffStatusSchema = _zod.z.enum([
     'active',
@@ -72,14 +71,16 @@ const CreateStaffSchema = _zod.z.object({
     email: _zod.z.email(),
     password: _zod.z.string().min(10).max(200),
     fullName: _zod.z.string().min(1).max(200),
-    role: StaffRoleSchema
+    role: StaffRoleSchema,
+    /** Required for `clinician`: the provider profile this doctor's login works as. */ providerId: _zod.z.uuid().optional()
 });
 let CreateStaffDto = class CreateStaffDto extends (0, _zoddto.createZodDto)(CreateStaffSchema) {
 };
 const UpdateStaffSchema = _zod.z.object({
     fullName: _zod.z.string().min(1).max(200).optional(),
     role: StaffRoleSchema.optional(),
-    status: StaffStatusSchema.optional()
+    status: StaffStatusSchema.optional(),
+    providerId: _zod.z.uuid().nullable().optional()
 });
 let UpdateStaffDto = class UpdateStaffDto extends (0, _zoddto.createZodDto)(UpdateStaffSchema) {
 };
@@ -93,18 +94,6 @@ const ChangeOwnPasswordSchema = _zod.z.object({
     newPassword: _zod.z.string().min(10).max(200)
 });
 let ChangeOwnPasswordDto = class ChangeOwnPasswordDto extends (0, _zoddto.createZodDto)(ChangeOwnPasswordSchema) {
-};
-const MAX_AVATAR_BYTES = 512 * 1024;
-const UploadAvatarSchema = _zod.z.object({
-    contentType: _zod.z.enum([
-        'image/jpeg',
-        'image/png',
-        'image/webp'
-    ]),
-    // base64 is ~4/3 of the byte length; the decoded size is checked again in the service.
-    data: _zod.z.base64().max(Math.ceil(MAX_AVATAR_BYTES * 4 / 3) + 4)
-});
-let UploadAvatarDto = class UploadAvatarDto extends (0, _zoddto.createZodDto)(UploadAvatarSchema) {
 };
 const ListStaffQuerySchema = _paginationdto.PaginationQuerySchema.extend({
     role: StaffRoleSchema.optional(),

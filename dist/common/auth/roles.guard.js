@@ -35,8 +35,19 @@ let RolesGuard = class RolesGuard {
             context.getHandler(),
             context.getClass()
         ]);
-        if (!requiredRoles || requiredRoles.length === 0) return true;
         const request = context.switchToHttp().getRequest();
+        if (!requiredRoles || requiredRoles.length === 0) {
+            // "Any signed-in staff" - except clinicians, who must be named explicitly (or the route opts in
+            // with `@AllowClinician()`), so a doctor's login can never reach the admin data by default.
+            if (request.staff.role === 'clinician') {
+                const allowed = this.reflector.getAllAndOverride(_rolesdecorator.ALLOW_CLINICIAN_KEY, [
+                    context.getHandler(),
+                    context.getClass()
+                ]);
+                if (!allowed) throw new _common.ForbiddenException('Your role does not have access to this.');
+            }
+            return true;
+        }
         if (!requiredRoles.includes(request.staff.role)) {
             throw new _common.ForbiddenException('Your role does not have access to this.');
         }

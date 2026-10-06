@@ -78,6 +78,7 @@ let StaffController = class StaffController {
     }
 };
 _ts_decorate([
+    (0, _commonauthmodule.AllowClinician)(),
     (0, _common.Get)('me'),
     _ts_param(0, (0, _commonauthmodule.CurrentStaff)()),
     _ts_metadata("design:type", Function),
@@ -87,6 +88,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], StaffController.prototype, "me", null);
 _ts_decorate([
+    (0, _commonauthmodule.AllowClinician)(),
     (0, _common.Patch)('me'),
     _ts_param(0, (0, _commonauthmodule.CurrentStaff)()),
     _ts_param(1, (0, _common.Body)()),
@@ -98,6 +100,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], StaffController.prototype, "updateMe", null);
 _ts_decorate([
+    (0, _commonauthmodule.AllowClinician)(),
     (0, _common.Post)('me/password'),
     (0, _common.HttpCode)(_common.HttpStatus.NO_CONTENT),
     _ts_param(0, (0, _commonauthmodule.CurrentStaff)()),
@@ -110,6 +113,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], StaffController.prototype, "changeMyPassword", null);
 _ts_decorate([
+    (0, _commonauthmodule.AllowClinician)(),
     (0, _common.Put)('me/avatar'),
     _ts_param(0, (0, _commonauthmodule.CurrentStaff)()),
     _ts_param(1, (0, _common.Body)()),
@@ -121,6 +125,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], StaffController.prototype, "setMyAvatar", null);
 _ts_decorate([
+    (0, _commonauthmodule.AllowClinician)(),
     (0, _common.Delete)('me/avatar'),
     _ts_param(0, (0, _commonauthmodule.CurrentStaff)()),
     _ts_metadata("design:type", Function),
@@ -149,6 +154,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], StaffController.prototype, "list", null);
 _ts_decorate([
+    (0, _commonauthmodule.AllowClinician)(),
     (0, _common.Get)(':id/avatar'),
     _ts_param(0, (0, _common.Param)('id', _common.ParseUUIDPipe)),
     _ts_metadata("design:type", Function),

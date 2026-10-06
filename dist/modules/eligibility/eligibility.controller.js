@@ -10,6 +10,7 @@ Object.defineProperty(exports, "EligibilityController", {
 });
 const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
+const _commonauthmodule = require("../../common/auth/common-auth.module");
 const _eligibilitydto = require("./dto/eligibility.dto");
 const _eligibilityservice = require("./eligibility.service");
 function _ts_decorate(decorators, target, key, desc) {
@@ -54,6 +55,7 @@ _ts_decorate([
 ], EligibilityController.prototype, "check", null);
 EligibilityController = _ts_decorate([
     (0, _swagger.ApiTags)('eligibility'),
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Controller)('eligibility'),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [

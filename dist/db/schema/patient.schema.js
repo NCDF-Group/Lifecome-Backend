@@ -12,11 +12,15 @@ _export(exports, {
     get dependantRelationships () {
         return dependantRelationships;
     },
+    get patientAvatars () {
+        return patientAvatars;
+    },
     get patients () {
         return patients;
     }
 });
 const _pgcore = require("drizzle-orm/pg-core");
+const _columns = require("./columns");
 const _identityschema = require("./identity.schema");
 const patients = (0, _pgcore.pgTable)('patients', {
     id: (0, _pgcore.uuid)('id').primaryKey().defaultRandom(),
@@ -30,6 +34,9 @@ const patients = (0, _pgcore.pgTable)('patients', {
     city: (0, _pgcore.text)('city'),
     state: (0, _pgcore.text)('state'),
     country: (0, _pgcore.text)('country').notNull().default('NG'),
+    /** Set when a profile photo exists (bytes in `patientAvatars`); doubles as a cache-buster. */ avatarUpdatedAt: (0, _pgcore.timestamp)('avatar_updated_at', {
+        withTimezone: true
+    }),
     createdAt: (0, _pgcore.timestamp)('created_at', {
         withTimezone: true
     }).notNull().defaultNow(),
@@ -50,6 +57,16 @@ const dependantRelationships = (0, _pgcore.pgTable)('dependant_relationships', {
         withTimezone: true
     }),
     createdAt: (0, _pgcore.timestamp)('created_at', {
+        withTimezone: true
+    }).notNull().defaultNow()
+});
+const patientAvatars = (0, _pgcore.pgTable)('patient_avatars', {
+    patientId: (0, _pgcore.uuid)('patient_id').primaryKey().references(()=>patients.id, {
+        onDelete: 'cascade'
+    }),
+    contentType: (0, _pgcore.text)('content_type').notNull(),
+    image: (0, _columns.bytea)('image').notNull(),
+    updatedAt: (0, _pgcore.timestamp)('updated_at', {
         withTimezone: true
     }).notNull().defaultNow()
 });
