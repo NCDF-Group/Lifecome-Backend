@@ -10,8 +10,10 @@ import { otpChallenges, userAccounts } from '../../db/schema';
 import { AppConfigService } from '../../common/config/configuration';
 import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
 import { EmailService } from '../../common/email/email.service';
+import { SmsService } from '../../common/sms/sms.service';
 import { hashPassword, verifyPassword } from '../../common/security/password';
 import { otpEmailHtml } from '../../common/email/templates';
+import { otpSmsText } from '../../common/sms/templates';
 
 const OTP_TTL_MINUTES = 5;
 const MAX_ATTEMPTS = 5;
@@ -21,7 +23,9 @@ type UserAccount = typeof userAccounts.$inferSelect;
 export type UserAccountSummary = Omit<UserAccount, 'passwordHash'>;
 
 type OtpChallenge = typeof otpChallenges.$inferSelect;
-type OtpPurpose = 'email_verification' | 'password_reset';
+/** `phone_verification` is sign-up's OTP (sent by SMS); `password_reset` is still sent by email
+ * — forgot-password hasn't moved off email. */
+type OtpPurpose = 'phone_verification' | 'password_reset';
 
 export interface PatientSession {
   accessToken: string;
@@ -41,21 +45,30 @@ export class IdentityService {
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly config: AppConfigService,
     private readonly email: EmailService,
+    private readonly sms: SmsService,
     private readonly jwt: JwtService,
     @InjectPinoLogger(IdentityService.name) private readonly logger: PinoLogger,
   ) {}
 
-  /** Idempotent: registering an already-known email returns the existing account. `phoneNumber`
-   * is optional contact info only - LifeCome Live verifies by email, not SMS. */
-  async register(email: string, phoneNumber?: string): Promise<UserAccountSummary> {
+  /** Idempotent: registering an already-known email returns the existing account as-is (no OTP
+   * resend, no overwrite of its name/password — use `otp/request` to resend). Otherwise creates
+   * the account with its password already hashed and sends the first OTP by SMS. */
+  async register(
+    firstName: string,
+    lastName: string,
+    email: string,
+    phoneNumber: string,
+    password: string,
+  ): Promise<UserAccountSummary> {
     const [existing] = await this.db.select().from(userAccounts).where(eq(userAccounts.email, email));
     if (existing) {
       return toSummary(existing);
     }
 
+    const passwordHash = await hashPassword(password);
     const [created] = await this.db
       .insert(userAccounts)
-      .values({ email, phoneNumber, status: 'pending_verification' })
+      .values({ email, phoneNumber, firstName, lastName, passwordHash, status: 'pending_verification' })
       .returning();
 
     await this.requestOtp(created.id);
@@ -65,26 +78,26 @@ export class IdentityService {
   async requestOtp(userAccountId: string): Promise<{ expiresAt: Date }> {
     const [account] = await this.db.select().from(userAccounts).where(eq(userAccounts.id, userAccountId));
     if (!account) throw new NotFoundAppException('User account');
+    if (!account.phoneNumber) {
+      throw new AppException('PHONE_NUMBER_MISSING', 'This account has no mobile number on file.', HttpStatus.BAD_REQUEST);
+    }
 
-    return this.createChallenge(account, {
-      purpose: 'email_verification',
-      subject: 'Verify your email - LifeCome Live',
-      heading: 'Verify your email',
-      intro: 'Use the code below to verify your email address and finish signing in to LifeCome Live.',
-    });
+    return this.createChallenge(account, { purpose: 'phone_verification' });
   }
 
-  async verifyOtp(userAccountId: string, code: string): Promise<UserAccountSummary> {
-    const challenge = await this.consumeChallenge(userAccountId, 'email_verification', code);
+  /** Verifies the sign-up OTP and, since the password was already set at registration, signs the
+   * patient straight in — there's no separate "create password" step after this one. */
+  async verifyOtp(userAccountId: string, code: string): Promise<PatientSession> {
+    const challenge = await this.consumeChallenge(userAccountId, 'phone_verification', code);
     if (!challenge) throw new AppException('OTP_NOT_FOUND', 'Request a new code and try again.');
 
     const [account] = await this.db
       .update(userAccounts)
-      .set({ status: 'active', emailVerifiedAt: new Date(), updatedAt: new Date() })
+      .set({ status: 'active', phoneVerifiedAt: new Date(), updatedAt: new Date() })
       .where(eq(userAccounts.id, userAccountId))
       .returning();
 
-    return toSummary(account);
+    return this.issueSession(account);
   }
 
   /** Never reveals whether `email` has an account — a generic success either way. */
@@ -93,12 +106,7 @@ export class IdentityService {
     const genericResponse = { expiresAt: new Date(Date.now() + OTP_TTL_MINUTES * 60_000) };
     if (!account) return genericResponse;
 
-    return this.createChallenge(account, {
-      purpose: 'password_reset',
-      subject: 'Reset your password - LifeCome Live',
-      heading: 'Reset your password',
-      intro: 'Use the code below to reset your LifeCome Live password.',
-    });
+    return this.createChallenge(account, { purpose: 'password_reset' });
   }
 
   /** Checks a reset code without consuming it, so the mobile app can move the user to the "new
@@ -126,25 +134,6 @@ export class IdentityService {
     await this.db.update(userAccounts).set({ passwordHash, updatedAt: new Date() }).where(eq(userAccounts.id, account.id));
   }
 
-  /** Sets the account's password, then signs it straight in — its own step after `verifyOtp`,
-   * since sign-up verifies the email before it ever asks for a password. */
-  async setPassword(userAccountId: string, password: string): Promise<PatientSession> {
-    const [account] = await this.db.select().from(userAccounts).where(eq(userAccounts.id, userAccountId));
-    if (!account) throw new NotFoundAppException('User account');
-    if (!account.emailVerifiedAt) {
-      throw new AppException('EMAIL_NOT_VERIFIED', 'Verify your email before setting a password.', HttpStatus.BAD_REQUEST);
-    }
-
-    const passwordHash = await hashPassword(password);
-    const [updated] = await this.db
-      .update(userAccounts)
-      .set({ passwordHash, updatedAt: new Date() })
-      .where(eq(userAccounts.id, userAccountId))
-      .returning();
-
-    return this.issueSession(updated);
-  }
-
   async login(email: string, password: string): Promise<PatientSession> {
     const [account] = await this.db.select().from(userAccounts).where(eq(userAccounts.email, email));
     if (!account || !account.passwordHash) {
@@ -164,11 +153,12 @@ export class IdentityService {
     return { accessToken, expiresIn: TOKEN_TTL_SECONDS, account: toSummary(account) };
   }
 
-  /** Creates and emails a fresh OTP for `purpose`, shared by email verification and password
-   * reset so the two never drift apart in TTL/attempt behaviour — only the email copy differs. */
+  /** Creates a fresh OTP for `purpose` and sends it over the channel that purpose uses: SMS for
+   * sign-up (`phone_verification`), email for `password_reset` — forgot-password hasn't moved off
+   * email. One method so both never drift apart in TTL/attempt behaviour. */
   private async createChallenge(
     account: UserAccount,
-    options: { purpose: OtpPurpose; subject: string; heading: string; intro: string },
+    options: { purpose: OtpPurpose },
   ): Promise<{ expiresAt: Date }> {
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     const codeHash = this.hashCode(code);
@@ -181,20 +171,33 @@ export class IdentityService {
       expiresAt,
     });
 
-    // EmailService no-ops (and just logs) when BREVO_API_KEY/BREVO_SENDER_EMAIL aren't set - see
-    // its own doc comment for why a failed/unconfigured send never blocks this request.
-    await this.email.send({
-      to: account.email,
-      subject: options.subject,
-      html: otpEmailHtml({ code, expiresInMinutes: OTP_TTL_MINUTES, heading: options.heading, intro: options.intro }),
-    });
+    // Both services no-op (and just log) when unconfigured — see SmsService/EmailService's own
+    // doc comments for why a failed/unconfigured send never blocks this request.
+    if (options.purpose === 'phone_verification') {
+      await this.sms.send({
+        to: account.phoneNumber!,
+        body: otpSmsText({ code, expiresInMinutes: OTP_TTL_MINUTES }),
+      });
+    } else {
+      await this.email.send({
+        to: account.email,
+        subject: 'Reset your password - LifeCome Live',
+        html: otpEmailHtml({
+          code,
+          expiresInMinutes: OTP_TTL_MINUTES,
+          heading: 'Reset your password',
+          intro: 'Use the code below to reset your LifeCome Live password.',
+        }),
+      });
+    }
 
     // Never log a live OTP in production; in development this is how you retrieve it without a
-    // real inbox attached (see EmailService for the equivalent behind BREVO_API_KEY).
+    // real phone/inbox attached (see SmsService/EmailService for the equivalent behind their own
+    // provider config).
     if (!this.config.isProduction) {
       this.logger.debug(
         { userAccountId: account.id, purpose: options.purpose, code },
-        'OTP generated (development only — logged regardless of email delivery)',
+        'OTP generated (development only — logged regardless of delivery)',
       );
     }
 
@@ -202,7 +205,7 @@ export class IdentityService {
   }
 
   /** The latest unconsumed challenge for `purpose`, scoped by purpose so a pending
-   * email-verification code and a pending password-reset code can never be swapped for one
+   * phone-verification code and a pending password-reset code can never be swapped for one
    * another even while both exist for the same account. */
   private async findChallenge(userAccountId: string, purpose: OtpPurpose) {
     const [challenge] = await this.db

@@ -7,7 +7,6 @@ import {
   RegisterDto,
   RequestOtpDto,
   RequestPasswordResetDto,
-  SetPasswordDto,
   VerifyOtpDto,
   VerifyPasswordResetCodeDto,
 } from './dto/register.dto';
@@ -18,10 +17,11 @@ import { IdentityService, type PatientSession, type UserAccountSummary } from '.
 export class IdentityController {
   constructor(private readonly identity: IdentityService) {}
 
-  /** View 01 — Sign In / Create Account. Also sends the first OTP, by email. */
+  /** View 01 — Create Account. Collects name, email, mobile number and password in one step,
+   * then sends the first OTP by SMS to that number. */
   @Post('register')
   register(@Body() body: RegisterDto): Promise<UserAccountSummary> {
-    return this.identity.register(body.email, body.phoneNumber);
+    return this.identity.register(body.firstName, body.lastName, body.email, body.phoneNumber, body.password);
   }
 
   @Post('otp/request')
@@ -29,16 +29,11 @@ export class IdentityController {
     return this.identity.requestOtp(body.userAccountId);
   }
 
-  /** View 02 — Verify Email. */
+  /** View 02 — Verify Mobile. The password was already set at registration, so a successful
+   * verify signs the patient straight in. */
   @Post('otp/verify')
-  verifyOtp(@Body() body: VerifyOtpDto): Promise<UserAccountSummary> {
+  verifyOtp(@Body() body: VerifyOtpDto): Promise<PatientSession> {
     return this.identity.verifyOtp(body.userAccountId, body.code);
-  }
-
-  /** View 03 — Create Password. Signs the patient in immediately after. */
-  @Post('password')
-  setPassword(@Body() body: SetPasswordDto): Promise<PatientSession> {
-    return this.identity.setPassword(body.userAccountId, body.password);
   }
 
   /** Welcome back — email+password sign-in. */

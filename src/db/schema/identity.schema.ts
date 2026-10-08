@@ -3,11 +3,11 @@ import { boolean, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-or
 import { userAccountStatusEnum } from './enums';
 
 /**
- * Authentication identity. Email is the account identifier and what's verified at sign-up
- * (LifeCome Live uses email OTP, not SMS - see `IdentityService`); phone number is optional
- * contact info only, collected for things like appointment reminders once that channel exists,
- * never used to sign in or verify anything. Clinical/demographic detail lives on `patients`,
- * one-to-one with this.
+ * Authentication identity. Email is the account identifier; phone number is what's verified at
+ * sign-up (LifeCome Live uses SMS OTP there - see `IdentityService`) and doubles as the sign-in
+ * contact channel. Name and password are collected in the same sign-up step, ahead of
+ * verification, so `passwordHash` is set from the start rather than as a later step.
+ * Clinical/demographic detail still lives on `patients`, one-to-one with this.
  */
 export const userAccounts = pgTable(
   'user_accounts',
@@ -15,15 +15,18 @@ export const userAccounts = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     email: text('email').notNull(),
     phoneNumber: text('phone_number'),
-    /** Null until `IdentityService.setPassword` - the account exists (and its email may already
-     * be verified) before it necessarily has one, since sign-up verifies the email first and sets
-     * a password as its own separate step (see `IdentityController`'s `POST /identity/password`). */
+    /** Basic contact names, collected at sign-up. Not the clinical identity - that's
+     * `patients.firstName`/`lastName`, collected separately once care-profile details exist. */
+    firstName: text('first_name'),
+    lastName: text('last_name'),
+    /** Set at registration now that sign-up collects a password up front (see
+     * `IdentityService.register`) - no longer a later, separate step. */
     passwordHash: text('password_hash'),
     status: userAccountStatusEnum('status').notNull().default('pending_verification'),
-    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
-    /** @deprecated Unused now that verification is by email (see `emailVerifiedAt`) - kept
-     * rather than dropped so this migration is a pure addition, with nothing ambiguous for
+    /** @deprecated Unused now that verification is by phone/SMS (see `phoneVerifiedAt`) - kept
+     * rather than dropped so this migration stays a pure addition, with nothing ambiguous for
      * drizzle-kit to ask about. Safe to actually drop in a later, standalone migration. */
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     phoneVerifiedAt: timestamp('phone_verified_at', { withTimezone: true }),
     mfaEnabled: boolean('mfa_enabled').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -37,14 +40,14 @@ export const userAccounts = pgTable(
   ],
 );
 
-/** A single-use one-time-passcode challenge for email verification or step-up auth. */
+/** A single-use one-time-passcode challenge for sign-up phone verification or password reset. */
 export const otpChallenges = pgTable('otp_challenges', {
   id: uuid('id').primaryKey().defaultRandom(),
   userAccountId: uuid('user_account_id')
     .notNull()
     .references(() => userAccounts.id, { onDelete: 'cascade' }),
   codeHash: text('code_hash').notNull(),
-  purpose: text('purpose').notNull().default('email_verification'),
+  purpose: text('purpose').notNull().default('phone_verification'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   consumedAt: timestamp('consumed_at', { withTimezone: true }),
   attemptCount: text('attempt_count').notNull().default('0'),
