@@ -8,12 +8,14 @@ interface KeepAliveLogger {
 }
 
 /**
- * Keeps this service itself awake on Render's free plan, which spins a web service down after 15
- * minutes with no incoming request - a periodic real HTTP round-trip to its own public URL counts
- * as one, so it never spins down. Deliberately part of the deployed app rather than a standalone
- * script (see `scripts/keep-alive.ts`, the local/manual version of this): that one only runs while
- * *your machine* is awake, which defeats the purpose the moment you close your laptop. This runs
- * for as long as the service itself is up, no separate always-on box required.
+ * Keeps this service itself - and its database - awake on the free tiers. Render spins the web
+ * service down after 15 minutes with no incoming request; Neon separately scales its compute to
+ * zero after 5 minutes with no query. Pinging `/health/ready` (not `/health/live`) exercises both
+ * in one round-trip, since readiness itself queries the database - see that endpoint's own
+ * handler. Deliberately part of the deployed app rather than a standalone script (see
+ * `scripts/keep-alive.ts`, the local/manual version of this): that one only runs while *your
+ * machine* is awake, which defeats the purpose the moment you close your laptop. This runs for as
+ * long as the service itself is up, no separate always-on box required.
  *
  * A no-op everywhere else: `RENDER_EXTERNAL_URL` is a platform env var Render sets automatically
  * on every web service (its own public HTTPS URL) and nothing else sets, so local dev and any
@@ -23,7 +25,7 @@ export function startSelfPing(logger: KeepAliveLogger): void {
   const baseUrl = process.env.RENDER_EXTERNAL_URL;
   if (!baseUrl) return;
 
-  const url = `${baseUrl}/api/v1/health/live`;
+  const url = `${baseUrl}/api/v1/health/ready`;
 
   async function ping(): Promise<void> {
     try {
