@@ -4,7 +4,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { CurrentPatientAccount, PatientAuthGuard, type PatientAccountToken } from '../../common/auth/common-auth.module';
 import { Idempotent } from '../../common/interceptors/idempotent.decorator';
 import { BookingService, type Appointment, type PatientAppointmentRow } from './booking.service';
-import { CreateMyAppointmentDto } from './dto/booking.dto';
+import { CreateMyAppointmentDto, RescheduleAppointmentDto } from './dto/booking.dto';
 
 /**
  * The signed-in patient's own appointments. Every route is scoped to the patient in the session token;
@@ -30,6 +30,16 @@ export class BookingController {
   @Get(':id')
   get(@CurrentPatientAccount() account: PatientAccountToken, @Param('id', ParseUUIDPipe) id: string): Promise<PatientAppointmentRow> {
     return this.booking.getForPatient(account.sub, id);
+  }
+
+  @Post(':id/reschedule')
+  @Idempotent()
+  reschedule(
+    @CurrentPatientAccount() account: PatientAccountToken,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: RescheduleAppointmentDto,
+  ): Promise<Appointment> {
+    return this.booking.rescheduleForPatient(account.sub, id, body.newAvailabilitySlotId);
   }
 
   @Post(':id/confirm')

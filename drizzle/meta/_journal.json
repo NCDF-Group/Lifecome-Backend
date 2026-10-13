@@ -64,6 +64,13 @@
       "when": 1791449157490,
       "tag": "0008_bored_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791980249176,
+      "tag": "0009_faithful_dependants_and_profile",
+      "breakpoints": true
     }
   ]
 }

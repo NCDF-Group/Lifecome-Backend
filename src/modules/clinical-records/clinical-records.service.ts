@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 
 import { DRIZZLE, type Database } from '../../db/client';
 import {
@@ -9,6 +9,7 @@ import {
   diagnosticResults,
   encounters,
   prescriptions,
+  providers,
   referrals,
 } from '../../db/schema';
 import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
@@ -153,5 +154,167 @@ export class ClinicalRecordsService {
       .returning();
     if (!updated) throw new NotFoundAppException('Diagnostic result');
     return updated;
+  }
+
+  // ---- Patient Records ---------------------------------------------------------------------
+
+  async listEncountersForPatient(patientId: string) {
+    return this.db
+      .select({
+        id: encounters.id,
+        appointmentId: encounters.appointmentId,
+        patientId: encounters.patientId,
+        providerId: encounters.providerId,
+        providerName: providers.displayName,
+        providerSpecialty: providers.specialty,
+        occurredAt: encounters.occurredAt,
+      })
+      .from(encounters)
+      .innerJoin(providers, eq(encounters.providerId, providers.id))
+      .where(eq(encounters.patientId, patientId))
+      .orderBy(desc(encounters.occurredAt));
+  }
+
+  async getEncounterDetailForPatient(patientId: string, encounterId: string) {
+    const [encounter] = await this.db
+      .select({
+        id: encounters.id,
+        appointmentId: encounters.appointmentId,
+        patientId: encounters.patientId,
+        providerId: encounters.providerId,
+        providerName: providers.displayName,
+        providerSpecialty: providers.specialty,
+        occurredAt: encounters.occurredAt,
+      })
+      .from(encounters)
+      .innerJoin(providers, eq(encounters.providerId, providers.id))
+      .where(and(eq(encounters.id, encounterId), eq(encounters.patientId, patientId)));
+    if (!encounter) throw new NotFoundAppException('Encounter');
+
+    const notes = await this.db
+      .select()
+      .from(clinicalNotes)
+      .where(and(eq(clinicalNotes.encounterId, encounterId), eq(clinicalNotes.status, 'signed')));
+
+    const activeCarePlans = await this.db
+      .select()
+      .from(carePlans)
+      .where(eq(carePlans.encounterId, encounterId))
+      .orderBy(desc(carePlans.createdAt));
+
+    const encounterPrescriptions = await this.db
+      .select()
+      .from(prescriptions)
+      .where(eq(prescriptions.encounterId, encounterId))
+      .orderBy(desc(prescriptions.createdAt));
+
+    const encounterReferrals = await this.db
+      .select()
+      .from(referrals)
+      .where(eq(referrals.encounterId, encounterId))
+      .orderBy(desc(referrals.createdAt));
+
+    const orders = await this.db
+      .select()
+      .from(diagnosticOrders)
+      .where(eq(diagnosticOrders.encounterId, encounterId));
+
+    return {
+      encounter,
+      notes,
+      carePlans: activeCarePlans,
+      prescriptions: encounterPrescriptions,
+      referrals: encounterReferrals,
+      diagnosticOrders: orders,
+    };
+  }
+
+  async listCarePlansForPatient(patientId: string) {
+    return this.db
+      .select({
+        id: carePlans.id,
+        encounterId: carePlans.encounterId,
+        version: carePlans.version,
+        status: carePlans.status,
+        summary: carePlans.summary,
+        followUpDueAt: carePlans.followUpDueAt,
+        createdAt: carePlans.createdAt,
+        providerName: providers.displayName,
+      })
+      .from(carePlans)
+      .innerJoin(encounters, eq(carePlans.encounterId, encounters.id))
+      .innerJoin(providers, eq(encounters.providerId, providers.id))
+      .where(eq(encounters.patientId, patientId))
+      .orderBy(desc(carePlans.createdAt));
+  }
+
+  async listPrescriptionsForPatient(patientId: string) {
+    return this.db
+      .select({
+        id: prescriptions.id,
+        encounterId: prescriptions.encounterId,
+        medicationName: prescriptions.medicationName,
+        instructions: prescriptions.instructions,
+        createdAt: prescriptions.createdAt,
+        prescribedByName: providers.displayName,
+      })
+      .from(prescriptions)
+      .innerJoin(encounters, eq(prescriptions.encounterId, encounters.id))
+      .innerJoin(providers, eq(prescriptions.prescribedByProviderId, providers.id))
+      .where(eq(encounters.patientId, patientId))
+      .orderBy(desc(prescriptions.createdAt));
+  }
+
+  async listReferralsForPatient(patientId: string) {
+    return this.db
+      .select({
+        id: referrals.id,
+        encounterId: referrals.encounterId,
+        reason: referrals.reason,
+        referredToDescription: referrals.referredToDescription,
+        createdAt: referrals.createdAt,
+        referredByName: providers.displayName,
+      })
+      .from(referrals)
+      .innerJoin(encounters, eq(referrals.encounterId, encounters.id))
+      .innerJoin(providers, eq(referrals.referredByProviderId, providers.id))
+      .where(eq(encounters.patientId, patientId))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  async listDiagnosticResultsForPatient(patientId: string) {
+    return this.db
+      .select({
+        id: diagnosticResults.id,
+        diagnosticOrderId: diagnosticResults.diagnosticOrderId,
+        testName: diagnosticOrders.testName,
+        originatingProviderName: diagnosticResults.originatingProviderName,
+        reviewStatus: diagnosticResults.reviewStatus,
+        reviewedAt: diagnosticResults.reviewedAt,
+        resultSummary: diagnosticResults.resultSummary,
+        receivedAt: diagnosticResults.receivedAt,
+      })
+      .from(diagnosticResults)
+      .innerJoin(diagnosticOrders, eq(diagnosticResults.diagnosticOrderId, diagnosticOrders.id))
+      .innerJoin(encounters, eq(diagnosticOrders.encounterId, encounters.id))
+      .where(eq(encounters.patientId, patientId))
+      .orderBy(desc(diagnosticResults.receivedAt));
+  }
+
+  async getConsolidatedRecordsForPatient(patientId: string) {
+    const [encs, plans, rxs, refs, results] = await Promise.all([
+      this.listEncountersForPatient(patientId),
+      this.listCarePlansForPatient(patientId),
+      this.listPrescriptionsForPatient(patientId),
+      this.listReferralsForPatient(patientId),
+      this.listDiagnosticResultsForPatient(patientId),
+    ]);
+    return {
+      encounters: encs,
+      carePlans: plans,
+      prescriptions: rxs,
+      referrals: refs,
+      diagnosticResults: results,
+    };
   }
 }

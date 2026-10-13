@@ -18,8 +18,32 @@ export const patients = pgTable('patients', {
   city: text('city'),
   state: text('state'),
   country: text('country').notNull().default('NG'),
+  address: text('address'),
+  bloodGroup: text('blood_group'),
+  genotype: text('genotype'),
+  emergencyContactName: text('emergency_contact_name'),
+  emergencyContactPhone: text('emergency_contact_phone'),
+  emergencyContactRelationship: text('emergency_contact_relationship'),
   /** Set when a profile photo exists (bytes in `patientAvatars`); doubles as a cache-buster. */
   avatarUpdatedAt: timestamp('avatar_updated_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Patient dependants directly managed by a guardian patient (e.g. children or elders without separate sign-in accounts). */
+export const patientDependants = pgTable('patient_dependants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  patientId: uuid('patient_id')
+    .notNull()
+    .references(() => patients.id, { onDelete: 'cascade' }),
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name').notNull(),
+  relationship: text('relationship').notNull(),
+  dateOfBirth: date('date_of_birth').notNull(),
+  gender: text('gender'),
+  bloodGroup: text('blood_group'),
+  genotype: text('genotype'),
+  status: text('status').notNull().default('Covered'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });

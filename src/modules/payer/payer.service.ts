@@ -1,14 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq } from 'drizzle-orm';
 
 import { DRIZZLE, type Database } from '../../db/client';
-import { memberships, payers } from '../../db/schema';
-import { AppException } from '../../common/errors/app-exception';
+import { coveragePlans, memberships, payers } from '../../db/schema';
+import { AppException, NotFoundAppException } from '../../common/errors/app-exception';
 import { AuditService } from '../audit/audit.service';
 import { PayerAdapterRegistry } from './adapters/payer-adapter.registry';
 
 export type Payer = typeof payers.$inferSelect;
 export type Membership = typeof memberships.$inferSelect;
+export type CoveragePlan = typeof coveragePlans.$inferSelect;
+
+export interface PatientMembershipRow {
+  id: string;
+  patientId: string;
+  payerId: string;
+  payerCode: string;
+  payerName: string;
+  memberId: string;
+  planId: string | null;
+  status: 'Approved' | 'Verified' | 'Pending';
+  verifiedAt: Date | null;
+  createdAt: Date;
+}
 
 @Injectable()
 export class PayerService {
@@ -24,6 +38,48 @@ export class PayerService {
    */
   async listParticipatingPayers(): Promise<Payer[]> {
     return this.db.select().from(payers).where(eq(payers.isLive, true)).orderBy(asc(payers.displayOrder));
+  }
+
+  async listMembershipsForPatient(patientId: string): Promise<PatientMembershipRow[]> {
+    const rows = await this.db
+      .select({
+        id: memberships.id,
+        patientId: memberships.patientId,
+        payerId: memberships.payerId,
+        payerCode: payers.code,
+        payerName: payers.name,
+        memberId: memberships.memberId,
+        planId: memberships.planId,
+        verifiedAt: memberships.verifiedAt,
+        createdAt: memberships.createdAt,
+      })
+      .from(memberships)
+      .innerJoin(payers, eq(memberships.payerId, payers.id))
+      .where(eq(memberships.patientId, patientId))
+      .orderBy(desc(memberships.createdAt));
+
+    return rows.map((r) => ({
+      ...r,
+      status: r.verifiedAt ? 'Approved' : 'Pending',
+    }));
+  }
+
+  async deleteMembership(patientId: string, membershipId: string): Promise<void> {
+    const [found] = await this.db
+      .select()
+      .from(memberships)
+      .where(and(eq(memberships.id, membershipId), eq(memberships.patientId, patientId)));
+    if (!found) throw new NotFoundAppException('Membership');
+
+    await this.db.delete(memberships).where(eq(memberships.id, membershipId));
+  }
+
+  async getCoveragePlans(payerCode: string): Promise<CoveragePlan[]> {
+    const payer = await this.getLivePayerByCode(payerCode);
+    return this.db
+      .select()
+      .from(coveragePlans)
+      .where(eq(coveragePlans.payerId, payer.id));
   }
 
   async verifyMembership(patientId: string, payerCode: string, memberId: string): Promise<Membership> {

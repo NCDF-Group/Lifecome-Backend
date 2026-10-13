@@ -15,3 +15,6 @@ export const GrantConsentSchema = z.object({
   channel: z.string().max(50).default('app'),
 });
 export class GrantConsentDto extends createZodDto(GrantConsentSchema) {}
+
+export const GrantMyConsentSchema = GrantConsentSchema.omit({ patientId: true });
+export class GrantMyConsentDto extends createZodDto(GrantMyConsentSchema) {}

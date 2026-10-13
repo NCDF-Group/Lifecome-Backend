@@ -145,6 +145,50 @@ export class BookingService {
     return this.cancel(id);
   }
 
+  /** Reschedules an existing appointment to a new availability slot. */
+  async rescheduleForPatient(accountId: string, id: string, newAvailabilitySlotId: string): Promise<Appointment> {
+    const current = await this.getForPatient(accountId, id);
+    if (!['slot_held', 'confirmed', 'rescheduled'].includes(current.status)) {
+      throw new AppException('BOOKING_NOT_RESCHEDULABLE', `This booking cannot be rescheduled from its current state (${current.status}).`, HttpStatus.CONFLICT);
+    }
+    if (current.availabilitySlotId === newAvailabilitySlotId) {
+      throw new AppException('SAME_SLOT_SELECTED', 'The selected time is the same as the current booking.', HttpStatus.BAD_REQUEST);
+    }
+
+    const [newSlot] = await this.db.select().from(availabilitySlots).where(eq(availabilitySlots.id, newAvailabilitySlotId));
+    if (!newSlot) throw new NotFoundAppException('Availability slot');
+    if (newSlot.providerId !== current.providerId) {
+      throw new AppException('SLOT_PROVIDER_MISMATCH', 'That time does not belong to this clinician.', HttpStatus.BAD_REQUEST);
+    }
+    if (newSlot.startsAt.getTime() <= Date.now()) {
+      throw new AppException('SLOT_IN_PAST', 'That time has already passed. Please choose another.', HttpStatus.BAD_REQUEST);
+    }
+
+    // Hold the new slot first to guarantee availability
+    await this.scheduling.holdSlot(newAvailabilitySlotId);
+
+    // Release the previous slot
+    await this.scheduling.release(current.availabilitySlotId);
+
+    const nextStatus = current.status === 'slot_held' ? 'slot_held' : 'confirmed';
+    if (nextStatus === 'confirmed') {
+      await this.scheduling.markBooked(newAvailabilitySlotId);
+    }
+
+    const [updated] = await this.db
+      .update(appointments)
+      .set({
+        availabilitySlotId: newAvailabilitySlotId,
+        status: nextStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(appointments.id, id))
+      .returning();
+
+    await this.notifyPatient(updated, 'confirmed');
+    return updated;
+  }
+
   async getById(id: string): Promise<Appointment> {
     const [appointment] = await this.db.select().from(appointments).where(eq(appointments.id, id));
     if (!appointment) throw new NotFoundAppException('Appointment');

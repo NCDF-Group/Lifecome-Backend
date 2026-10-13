@@ -15,13 +15,40 @@ type ProviderNetworkStatus = z.infer<typeof ProviderNetworkStatusSchema>;
 export class ProviderDirectoryService {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
 
-  async list(filters: { specialty?: string }): Promise<Provider[]> {
+  async list(filters: {
+    search?: string;
+    specialty?: string;
+    language?: string;
+    consultationMode?: 'video' | 'audio' | 'in_person';
+    city?: string;
+    state?: string;
+  }): Promise<Provider[]> {
     const conditions = [eq(providers.networkStatus, 'active')];
     if (filters.specialty) conditions.push(eq(providers.specialty, filters.specialty));
-    return this.db
+    if (filters.search) conditions.push(ilike(providers.displayName, `%${filters.search}%`));
+    if (filters.city) conditions.push(ilike(providers.city, `%${filters.city}%`));
+    if (filters.state) conditions.push(ilike(providers.state, `%${filters.state}%`));
+    const rows = await this.db
       .select()
       .from(providers)
       .where(conditions.length > 1 ? and(...conditions) : conditions[0]);
+
+    let filtered = rows;
+    if (filters.language) {
+      filtered = filtered.filter((p) => p.languages.includes(filters.language!));
+    }
+    if (filters.consultationMode) {
+      filtered = filtered.filter((p) => p.consultationModes.includes(filters.consultationMode!));
+    }
+    return filtered;
+  }
+
+  async listSpecialties(): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ specialty: providers.specialty })
+      .from(providers)
+      .where(eq(providers.networkStatus, 'active'));
+    return rows.map((r) => r.specialty).filter(Boolean);
   }
 
   async getById(id: string): Promise<Provider> {

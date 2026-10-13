@@ -73,6 +73,6 @@ export class SchedulingService {
   }
 
   async release(slotId: string): Promise<void> {
-    await this.db.update(availabilitySlots).set({ heldUntil: null }).where(eq(availabilitySlots.id, slotId));
+    await this.db.update(availabilitySlots).set({ isBooked: false, heldUntil: null }).where(eq(availabilitySlots.id, slotId));
   }
 }

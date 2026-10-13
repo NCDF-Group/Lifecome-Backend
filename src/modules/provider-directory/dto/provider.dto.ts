@@ -27,7 +27,11 @@ export const CreateProviderSchema = z.object({
 export class CreateProviderDto extends createZodDto(CreateProviderSchema) {}
 
 export const ListProvidersQuerySchema = z.object({
+  search: z.string().optional(),
   specialty: z.string().optional(),
   language: z.string().optional(),
+  consultationMode: z.enum(['video', 'audio', 'in_person']).optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
 });
 export class ListProvidersQueryDto extends createZodDto(ListProvidersQuerySchema) {}

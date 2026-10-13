@@ -14,7 +14,14 @@ export class ProviderDirectoryController {
   @UseGuards(PatientAuthGuard)
   @Get()
   list(@Query() query: ListProvidersQueryDto): Promise<Provider[]> {
-    return this.directory.list({ specialty: query.specialty });
+    return this.directory.list(query);
+  }
+
+  /** Distinct list of doctor specialties for filtering. */
+  @UseGuards(PatientAuthGuard)
+  @Get('specialties')
+  specialties(): Promise<string[]> {
+    return this.directory.listSpecialties();
   }
 
   /** View 12 — Doctor Profile. */
