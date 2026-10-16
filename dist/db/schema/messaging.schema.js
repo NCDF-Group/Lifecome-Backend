@@ -24,7 +24,8 @@ const messageThreads = (0, _pgcore.pgTable)('message_threads', {
         onDelete: 'cascade'
     }),
     subject: (0, _pgcore.text)('subject'),
-    /** What the patient picked on "What do you need help with?": booking_payments, online_appointment, clinic_visit or follow_up. */ topic: (0, _pgcore.text)('topic'),
+    /** What the patient picked on "What do you need help with?": booking_payments, online_appointment, clinic_visit, follow_up, care_support, etc. */ topic: (0, _pgcore.text)('topic'),
+    serviceCategory: (0, _pgcore.text)('service_category').notNull().default('clinical'),
     createdAt: (0, _pgcore.timestamp)('created_at', {
         withTimezone: true
     }).notNull().defaultNow()

@@ -10,7 +10,8 @@ export class ListPatientsQueryDto extends createZodDto(ListPatientsQuerySchema) 
 export const CreatePatientProfileSchema = z.object({
   userAccountId: z.uuid(),
   firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
+  lastName: z.string().max(100).optional().nullable().or(z.literal('')),
+  fullName: z.string().max(200).optional().nullable().or(z.literal('')),
   dateOfBirth: z.iso.date(),
   sex: z.string().max(30).optional(),
   city: z.string().max(100).optional(),
@@ -30,7 +31,9 @@ export const UpdatePatientProfileSchema = CreatePatientProfileSchema.partial().o
 export class UpdatePatientProfileDto extends createZodDto(UpdatePatientProfileSchema) {}
 
 /** `PUT /me/profile` - the signed-in patient creates or updates their own profile. */
-export const UpsertMyProfileSchema = CreatePatientProfileSchema.omit({ userAccountId: true });
+export const UpsertMyProfileSchema = CreatePatientProfileSchema.omit({ userAccountId: true }).extend({
+  firstName: z.string().max(100).optional().nullable().or(z.literal('')),
+});
 export class UpsertMyProfileDto extends createZodDto(UpsertMyProfileSchema) {}
 
 /** `PATCH /me/profile` - any subset of the profile fields (the profile must already exist). */

@@ -38,10 +38,22 @@ const MessageTopicSchema = _zod.z.enum([
     'booking_payments',
     'online_appointment',
     'clinic_visit',
-    'follow_up'
+    'follow_up',
+    'clinical_query',
+    'care_support',
+    'wellbeing_coaching',
+    'insurance_query',
+    'general_support'
 ]);
 const CreateMyThreadSchema = _zod.z.object({
     topic: MessageTopicSchema,
+    serviceCategory: _zod.z.enum([
+        'clinical',
+        'care',
+        'wellbeing',
+        'insurance',
+        'support'
+    ]).default('clinical'),
     body: _zod.z.string().trim().min(1).max(4000)
 });
 let CreateMyThreadDto = class CreateMyThreadDto extends (0, _zoddto.createZodDto)(CreateMyThreadSchema) {

@@ -142,6 +142,103 @@ let ClinicalRecordsService = class ClinicalRecordsService {
         if (!updated) throw new _appexception.NotFoundAppException('Diagnostic result');
         return updated;
     }
+    // ---- Patient Records ---------------------------------------------------------------------
+    async listEncountersForPatient(patientId) {
+        return this.db.select({
+            id: _schema.encounters.id,
+            appointmentId: _schema.encounters.appointmentId,
+            patientId: _schema.encounters.patientId,
+            providerId: _schema.encounters.providerId,
+            providerName: _schema.providers.displayName,
+            providerSpecialty: _schema.providers.specialty,
+            occurredAt: _schema.encounters.occurredAt
+        }).from(_schema.encounters).innerJoin(_schema.providers, (0, _drizzleorm.eq)(_schema.encounters.providerId, _schema.providers.id)).where((0, _drizzleorm.eq)(_schema.encounters.patientId, patientId)).orderBy((0, _drizzleorm.desc)(_schema.encounters.occurredAt));
+    }
+    async getEncounterDetailForPatient(patientId, encounterId) {
+        const [encounter] = await this.db.select({
+            id: _schema.encounters.id,
+            appointmentId: _schema.encounters.appointmentId,
+            patientId: _schema.encounters.patientId,
+            providerId: _schema.encounters.providerId,
+            providerName: _schema.providers.displayName,
+            providerSpecialty: _schema.providers.specialty,
+            occurredAt: _schema.encounters.occurredAt
+        }).from(_schema.encounters).innerJoin(_schema.providers, (0, _drizzleorm.eq)(_schema.encounters.providerId, _schema.providers.id)).where((0, _drizzleorm.and)((0, _drizzleorm.eq)(_schema.encounters.id, encounterId), (0, _drizzleorm.eq)(_schema.encounters.patientId, patientId)));
+        if (!encounter) throw new _appexception.NotFoundAppException('Encounter');
+        const notes = await this.db.select().from(_schema.clinicalNotes).where((0, _drizzleorm.and)((0, _drizzleorm.eq)(_schema.clinicalNotes.encounterId, encounterId), (0, _drizzleorm.eq)(_schema.clinicalNotes.status, 'signed')));
+        const activeCarePlans = await this.db.select().from(_schema.carePlans).where((0, _drizzleorm.eq)(_schema.carePlans.encounterId, encounterId)).orderBy((0, _drizzleorm.desc)(_schema.carePlans.createdAt));
+        const encounterPrescriptions = await this.db.select().from(_schema.prescriptions).where((0, _drizzleorm.eq)(_schema.prescriptions.encounterId, encounterId)).orderBy((0, _drizzleorm.desc)(_schema.prescriptions.createdAt));
+        const encounterReferrals = await this.db.select().from(_schema.referrals).where((0, _drizzleorm.eq)(_schema.referrals.encounterId, encounterId)).orderBy((0, _drizzleorm.desc)(_schema.referrals.createdAt));
+        const orders = await this.db.select().from(_schema.diagnosticOrders).where((0, _drizzleorm.eq)(_schema.diagnosticOrders.encounterId, encounterId));
+        return {
+            encounter,
+            notes,
+            carePlans: activeCarePlans,
+            prescriptions: encounterPrescriptions,
+            referrals: encounterReferrals,
+            diagnosticOrders: orders
+        };
+    }
+    async listCarePlansForPatient(patientId) {
+        return this.db.select({
+            id: _schema.carePlans.id,
+            encounterId: _schema.carePlans.encounterId,
+            version: _schema.carePlans.version,
+            status: _schema.carePlans.status,
+            summary: _schema.carePlans.summary,
+            followUpDueAt: _schema.carePlans.followUpDueAt,
+            createdAt: _schema.carePlans.createdAt,
+            providerName: _schema.providers.displayName
+        }).from(_schema.carePlans).innerJoin(_schema.encounters, (0, _drizzleorm.eq)(_schema.carePlans.encounterId, _schema.encounters.id)).innerJoin(_schema.providers, (0, _drizzleorm.eq)(_schema.encounters.providerId, _schema.providers.id)).where((0, _drizzleorm.eq)(_schema.encounters.patientId, patientId)).orderBy((0, _drizzleorm.desc)(_schema.carePlans.createdAt));
+    }
+    async listPrescriptionsForPatient(patientId) {
+        return this.db.select({
+            id: _schema.prescriptions.id,
+            encounterId: _schema.prescriptions.encounterId,
+            medicationName: _schema.prescriptions.medicationName,
+            instructions: _schema.prescriptions.instructions,
+            createdAt: _schema.prescriptions.createdAt,
+            prescribedByName: _schema.providers.displayName
+        }).from(_schema.prescriptions).innerJoin(_schema.encounters, (0, _drizzleorm.eq)(_schema.prescriptions.encounterId, _schema.encounters.id)).innerJoin(_schema.providers, (0, _drizzleorm.eq)(_schema.prescriptions.prescribedByProviderId, _schema.providers.id)).where((0, _drizzleorm.eq)(_schema.encounters.patientId, patientId)).orderBy((0, _drizzleorm.desc)(_schema.prescriptions.createdAt));
+    }
+    async listReferralsForPatient(patientId) {
+        return this.db.select({
+            id: _schema.referrals.id,
+            encounterId: _schema.referrals.encounterId,
+            reason: _schema.referrals.reason,
+            referredToDescription: _schema.referrals.referredToDescription,
+            createdAt: _schema.referrals.createdAt,
+            referredByName: _schema.providers.displayName
+        }).from(_schema.referrals).innerJoin(_schema.encounters, (0, _drizzleorm.eq)(_schema.referrals.encounterId, _schema.encounters.id)).innerJoin(_schema.providers, (0, _drizzleorm.eq)(_schema.referrals.referredByProviderId, _schema.providers.id)).where((0, _drizzleorm.eq)(_schema.encounters.patientId, patientId)).orderBy((0, _drizzleorm.desc)(_schema.referrals.createdAt));
+    }
+    async listDiagnosticResultsForPatient(patientId) {
+        return this.db.select({
+            id: _schema.diagnosticResults.id,
+            diagnosticOrderId: _schema.diagnosticResults.diagnosticOrderId,
+            testName: _schema.diagnosticOrders.testName,
+            originatingProviderName: _schema.diagnosticResults.originatingProviderName,
+            reviewStatus: _schema.diagnosticResults.reviewStatus,
+            reviewedAt: _schema.diagnosticResults.reviewedAt,
+            resultSummary: _schema.diagnosticResults.resultSummary,
+            receivedAt: _schema.diagnosticResults.receivedAt
+        }).from(_schema.diagnosticResults).innerJoin(_schema.diagnosticOrders, (0, _drizzleorm.eq)(_schema.diagnosticResults.diagnosticOrderId, _schema.diagnosticOrders.id)).innerJoin(_schema.encounters, (0, _drizzleorm.eq)(_schema.diagnosticOrders.encounterId, _schema.encounters.id)).where((0, _drizzleorm.eq)(_schema.encounters.patientId, patientId)).orderBy((0, _drizzleorm.desc)(_schema.diagnosticResults.receivedAt));
+    }
+    async getConsolidatedRecordsForPatient(patientId) {
+        const [encs, plans, rxs, refs, results] = await Promise.all([
+            this.listEncountersForPatient(patientId),
+            this.listCarePlansForPatient(patientId),
+            this.listPrescriptionsForPatient(patientId),
+            this.listReferralsForPatient(patientId),
+            this.listDiagnosticResultsForPatient(patientId)
+        ]);
+        return {
+            encounters: encs,
+            carePlans: plans,
+            prescriptions: rxs,
+            referrals: refs,
+            diagnosticResults: results
+        };
+    }
     constructor(db, audit){
         this.db = db;
         this.audit = audit;

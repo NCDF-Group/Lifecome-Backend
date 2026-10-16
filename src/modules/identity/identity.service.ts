@@ -20,7 +20,10 @@ const MAX_ATTEMPTS = 5;
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // matches IdentityModule's JwtModule signOptions.expiresIn
 
 type UserAccount = typeof userAccounts.$inferSelect;
-export type UserAccountSummary = Omit<UserAccount, 'passwordHash'>;
+export type UserAccountSummary = Omit<UserAccount, 'passwordHash'> & {
+  registeredName?: string | null;
+  fullName?: string | null;
+};
 
 type OtpChallenge = typeof otpChallenges.$inferSelect;
 /** `phone_verification` is sign-up's OTP (sent by SMS); `password_reset` is still sent by email
@@ -36,7 +39,12 @@ export interface PatientSession {
 function toSummary(account: UserAccount): UserAccountSummary {
   const summary: Partial<UserAccount> = { ...account };
   delete summary.passwordHash;
-  return summary as UserAccountSummary;
+  const registeredName = [account.firstName, account.lastName].filter(Boolean).join(' ').trim() || null;
+  return {
+    ...summary,
+    registeredName,
+    fullName: registeredName,
+  } as UserAccountSummary;
 }
 
 @Injectable()

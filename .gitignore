@@ -19,6 +19,17 @@ npm-debug.log*
 .vscode/
 .idea/
 
+# Agent instructions and configuration
+AGENTS.md
+*.agent.md
+*.instructions.md
+*.prompt.md
+copilot-instructions.md
+.github/agents/
+.github/instructions/
+.github/prompts/
+.claude/
+
 # Test/coverage
 coverage/
 

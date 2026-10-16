@@ -37,6 +37,13 @@ import { ProviderDirectoryModule } from './modules/provider-directory/provider-d
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { ServiceCatalogueModule } from './modules/service-catalogue/service-catalogue.module';
 import { StaffModule } from './modules/staff/staff.module';
+import { ServiceHubModule } from './modules/service-hub/service-hub.module';
+import { GpModule } from './modules/gp/gp.module';
+import { CareModule } from './modules/care/care.module';
+import { WellbeingModule } from './modules/wellbeing/wellbeing.module';
+import { ShopModule } from './modules/shop/shop.module';
+import { InsuranceModule } from './modules/insurance/insurance.module';
+import { VisitsModule } from './modules/visits/visits.module';
 
 @Module({
   imports: [
@@ -93,6 +100,15 @@ import { StaffModule } from './modules/staff/staff.module';
     NotificationsModule,
     DocumentsModule,
     ConsentModule,
+
+    // --- Launch services & service hubs (15 October 2026 update) ---
+    ServiceHubModule,
+    GpModule,
+    CareModule,
+    WellbeingModule,
+    ShopModule,
+    InsuranceModule,
+    VisitsModule,
 
     // --- Operations console (blueprint §2.3 — Lifecome-admin) ---
     StaffModule,

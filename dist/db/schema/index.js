@@ -19,6 +19,12 @@ _export_star(require("./consent.schema"), exports);
 _export_star(require("./audit.schema"), exports);
 _export_star(require("./staff.schema"), exports);
 _export_star(require("./notification.schema"), exports);
+_export_star(require("./clinics.schema"), exports);
+_export_star(require("./menopause.schema"), exports);
+_export_star(require("./care.schema"), exports);
+_export_star(require("./wellbeing.schema"), exports);
+_export_star(require("./shop.schema"), exports);
+_export_star(require("./insurance.schema"), exports);
 function _export_star(from, to) {
     Object.keys(from).forEach(function(k) {
         if (k !== "default" && !Object.prototype.hasOwnProperty.call(to, k)) {

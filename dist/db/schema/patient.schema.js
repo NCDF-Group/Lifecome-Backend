@@ -15,6 +15,9 @@ _export(exports, {
     get patientAvatars () {
         return patientAvatars;
     },
+    get patientDependants () {
+        return patientDependants;
+    },
     get patients () {
         return patients;
     }
@@ -34,9 +37,35 @@ const patients = (0, _pgcore.pgTable)('patients', {
     city: (0, _pgcore.text)('city'),
     state: (0, _pgcore.text)('state'),
     country: (0, _pgcore.text)('country').notNull().default('NG'),
+    address: (0, _pgcore.text)('address'),
+    bloodGroup: (0, _pgcore.text)('blood_group'),
+    genotype: (0, _pgcore.text)('genotype'),
+    emergencyContactName: (0, _pgcore.text)('emergency_contact_name'),
+    emergencyContactPhone: (0, _pgcore.text)('emergency_contact_phone'),
+    emergencyContactRelationship: (0, _pgcore.text)('emergency_contact_relationship'),
     /** Set when a profile photo exists (bytes in `patientAvatars`); doubles as a cache-buster. */ avatarUpdatedAt: (0, _pgcore.timestamp)('avatar_updated_at', {
         withTimezone: true
     }),
+    createdAt: (0, _pgcore.timestamp)('created_at', {
+        withTimezone: true
+    }).notNull().defaultNow(),
+    updatedAt: (0, _pgcore.timestamp)('updated_at', {
+        withTimezone: true
+    }).notNull().defaultNow()
+});
+const patientDependants = (0, _pgcore.pgTable)('patient_dependants', {
+    id: (0, _pgcore.uuid)('id').primaryKey().defaultRandom(),
+    patientId: (0, _pgcore.uuid)('patient_id').notNull().references(()=>patients.id, {
+        onDelete: 'cascade'
+    }),
+    firstName: (0, _pgcore.text)('first_name').notNull(),
+    lastName: (0, _pgcore.text)('last_name').notNull(),
+    relationship: (0, _pgcore.text)('relationship').notNull(),
+    dateOfBirth: (0, _pgcore.date)('date_of_birth').notNull(),
+    gender: (0, _pgcore.text)('gender'),
+    bloodGroup: (0, _pgcore.text)('blood_group'),
+    genotype: (0, _pgcore.text)('genotype'),
+    status: (0, _pgcore.text)('status').notNull().default('Covered'),
     createdAt: (0, _pgcore.timestamp)('created_at', {
         withTimezone: true
     }).notNull().defaultNow(),

@@ -38,9 +38,10 @@ function _ts_param(paramIndex, decorator) {
 }
 let ProviderDirectoryController = class ProviderDirectoryController {
     /** View 11 — Find a Doctor. */ list(query) {
-        return this.directory.list({
-            specialty: query.specialty
-        });
+        return this.directory.list(query);
+    }
+    /** Distinct list of doctor specialties for filtering. */ specialties() {
+        return this.directory.listSpecialties();
     }
     /** View 12 — Doctor Profile. */ get(id) {
         return this.directory.getById(id);
@@ -62,6 +63,13 @@ _ts_decorate([
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], ProviderDirectoryController.prototype, "list", null);
+_ts_decorate([
+    (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
+    (0, _common.Get)('specialties'),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", []),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], ProviderDirectoryController.prototype, "specialties", null);
 _ts_decorate([
     (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),
     (0, _common.Get)(':id'),

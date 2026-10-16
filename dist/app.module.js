@@ -45,6 +45,13 @@ const _providerdirectorymodule = require("./modules/provider-directory/provider-
 const _schedulingmodule = require("./modules/scheduling/scheduling.module");
 const _servicecataloguemodule = require("./modules/service-catalogue/service-catalogue.module");
 const _staffmodule = require("./modules/staff/staff.module");
+const _servicehubmodule = require("./modules/service-hub/service-hub.module");
+const _gpmodule = require("./modules/gp/gp.module");
+const _caremodule = require("./modules/care/care.module");
+const _wellbeingmodule = require("./modules/wellbeing/wellbeing.module");
+const _shopmodule = require("./modules/shop/shop.module");
+const _insurancemodule = require("./modules/insurance/insurance.module");
+const _visitsmodule = require("./modules/visits/visits.module");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") {
@@ -124,6 +131,14 @@ AppModule = _ts_decorate([
             _notificationsmodule.NotificationsModule,
             _documentsmodule.DocumentsModule,
             _consentmodule.ConsentModule,
+            // --- Launch services & service hubs (15 October 2026 update) ---
+            _servicehubmodule.ServiceHubModule,
+            _gpmodule.GpModule,
+            _caremodule.CareModule,
+            _wellbeingmodule.WellbeingModule,
+            _shopmodule.ShopModule,
+            _insurancemodule.InsuranceModule,
+            _visitsmodule.VisitsModule,
             // --- Operations console (blueprint §2.3 — Lifecome-admin) ---
             _staffmodule.StaffModule,
             _authmodule.AuthModule,

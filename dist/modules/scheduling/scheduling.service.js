@@ -75,6 +75,7 @@ let SchedulingService = class SchedulingService {
     }
     async release(slotId) {
         await this.db.update(_schema.availabilitySlots).set({
+            isBooked: false,
             heldUntil: null
         }).where((0, _drizzleorm.eq)(_schema.availabilitySlots.id, slotId));
     }

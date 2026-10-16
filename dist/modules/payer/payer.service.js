@@ -45,6 +45,32 @@ let PayerService = class PayerService {
    */ async listParticipatingPayers() {
         return this.db.select().from(_schema.payers).where((0, _drizzleorm.eq)(_schema.payers.isLive, true)).orderBy((0, _drizzleorm.asc)(_schema.payers.displayOrder));
     }
+    async listMembershipsForPatient(patientId) {
+        const rows = await this.db.select({
+            id: _schema.memberships.id,
+            patientId: _schema.memberships.patientId,
+            payerId: _schema.memberships.payerId,
+            payerCode: _schema.payers.code,
+            payerName: _schema.payers.name,
+            memberId: _schema.memberships.memberId,
+            planId: _schema.memberships.planId,
+            verifiedAt: _schema.memberships.verifiedAt,
+            createdAt: _schema.memberships.createdAt
+        }).from(_schema.memberships).innerJoin(_schema.payers, (0, _drizzleorm.eq)(_schema.memberships.payerId, _schema.payers.id)).where((0, _drizzleorm.eq)(_schema.memberships.patientId, patientId)).orderBy((0, _drizzleorm.desc)(_schema.memberships.createdAt));
+        return rows.map((r)=>({
+                ...r,
+                status: r.verifiedAt ? 'Approved' : 'Pending'
+            }));
+    }
+    async deleteMembership(patientId, membershipId) {
+        const [found] = await this.db.select().from(_schema.memberships).where((0, _drizzleorm.and)((0, _drizzleorm.eq)(_schema.memberships.id, membershipId), (0, _drizzleorm.eq)(_schema.memberships.patientId, patientId)));
+        if (!found) throw new _appexception.NotFoundAppException('Membership');
+        await this.db.delete(_schema.memberships).where((0, _drizzleorm.eq)(_schema.memberships.id, membershipId));
+    }
+    async getCoveragePlans(payerCode) {
+        const payer = await this.getLivePayerByCode(payerCode);
+        return this.db.select().from(_schema.coveragePlans).where((0, _drizzleorm.eq)(_schema.coveragePlans.payerId, payer.id));
+    }
     async verifyMembership(patientId, payerCode, memberId) {
         const payer = await this.getLivePayerByCode(payerCode);
         const adapter = this.registry.get(payerCode);

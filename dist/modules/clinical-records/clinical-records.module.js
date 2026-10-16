@@ -10,8 +10,10 @@ Object.defineProperty(exports, "ClinicalRecordsModule", {
 });
 const _common = require("@nestjs/common");
 const _auditmodule = require("../audit/audit.module");
+const _patientmodule = require("../patient/patient.module");
 const _clinicalrecordscontroller = require("./clinical-records.controller");
 const _clinicalrecordsservice = require("./clinical-records.service");
+const _patientrecordscontroller = require("./patient-records.controller");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") {
@@ -30,10 +32,12 @@ let ClinicalRecordsModule = class ClinicalRecordsModule {
 ClinicalRecordsModule = _ts_decorate([
     (0, _common.Module)({
         imports: [
-            _auditmodule.AuditModule
+            _auditmodule.AuditModule,
+            _patientmodule.PatientModule
         ],
         controllers: [
-            _clinicalrecordscontroller.ClinicalRecordsController
+            _clinicalrecordscontroller.ClinicalRecordsController,
+            _patientrecordscontroller.PatientRecordsController
         ],
         providers: [
             _clinicalrecordsservice.ClinicalRecordsService

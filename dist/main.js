@@ -34,8 +34,45 @@ async function bootstrap() {
     });
     await fastify.register(_compress.default);
     await fastify.register(_cors.default, {
-        origin: config.corsOrigins,
-        credentials: true
+        origin: (origin, cb)=>{
+            // Mobile native apps (React Native, Flutter, Swift/Kotlin), curl, server-to-server have no Origin header
+            if (!origin) {
+                cb(null, true);
+                return;
+            }
+            // Check configured origins
+            if (config.corsOrigins.includes('*') || config.corsOrigins.includes(origin) || // Allow localhost and local IP origins for local web/mobile development
+            /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) || // Allow hybrid mobile schemes
+            origin.startsWith('capacitor://') || origin.startsWith('ionic://')) {
+                cb(null, true);
+                return;
+            }
+            cb(new Error('Not allowed by CORS'), false);
+        },
+        credentials: true,
+        methods: [
+            'GET',
+            'POST',
+            'PUT',
+            'PATCH',
+            'DELETE',
+            'OPTIONS',
+            'HEAD'
+        ],
+        allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'Idempotency-Key',
+            'x-correlation-id',
+            'x-region',
+            'Accept',
+            'Origin',
+            'X-Requested-With'
+        ],
+        exposedHeaders: [
+            'x-correlation-id',
+            'content-disposition'
+        ]
     });
     await fastify.register(_ratelimit.default, {
         max: 100,
@@ -55,7 +92,17 @@ async function bootstrap() {
     // Served in every environment (including production) so the frontend teams consuming this API
     // — the LifeCome Live web app and mobile app — have one live reference for request/response
     // shapes, rather than a doc that only exists locally.
-    const document = _swagger.SwaggerModule.createDocument(app, new _swagger.DocumentBuilder().setTitle('LifeCome Live API').setDescription('Modular-monolith API for the LifeCome Live platform. See ../docs/prd for the product blueprint.').setVersion('0.1.0').build());
+    const document = _swagger.SwaggerModule.createDocument(app, new _swagger.DocumentBuilder().setTitle('LifeCome Live API').setDescription('Modular-monolith API for the LifeCome Live platform (Web and Mobile apps). See ../docs/prd for the product blueprint.').setVersion('0.1.0').addBearerAuth({
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Patient session JWT (obtained from /api/v1/identity/login or /api/v1/identity/otp/verify)'
+    }, 'patient-jwt').addBearerAuth({
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Staff JWT for admin operations console (/api/v1/auth/login)'
+    }, 'staff-jwt').build());
     _swagger.SwaggerModule.setup('docs', app, document, {
         useGlobalPrefix: true
     });

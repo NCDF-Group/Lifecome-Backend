@@ -47,6 +47,9 @@ let BookingController = class BookingController {
     get(account, id) {
         return this.booking.getForPatient(account.sub, id);
     }
+    reschedule(account, id, body) {
+        return this.booking.rescheduleForPatient(account.sub, id, body.newAvailabilitySlotId);
+    }
     confirm(account, id) {
         return this.booking.confirmForPatient(account.sub, id);
     }
@@ -89,6 +92,20 @@ _ts_decorate([
     ]),
     _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
 ], BookingController.prototype, "get", null);
+_ts_decorate([
+    (0, _common.Post)(':id/reschedule'),
+    (0, _idempotentdecorator.Idempotent)(),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    _ts_param(2, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
+        String,
+        typeof _bookingdto.RescheduleAppointmentDto === "undefined" ? Object : _bookingdto.RescheduleAppointmentDto
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], BookingController.prototype, "reschedule", null);
 _ts_decorate([
     (0, _common.Post)(':id/confirm'),
     (0, _idempotentdecorator.Idempotent)(),

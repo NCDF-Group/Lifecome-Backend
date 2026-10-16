@@ -33,7 +33,12 @@ export class MessagingService {
     return this.db.transaction(async (tx) => {
       const [thread] = await tx
         .insert(messageThreads)
-        .values({ patientId: patient.id, topic: input.topic, subject: topicLabel(input.topic) })
+        .values({
+          patientId: patient.id,
+          topic: input.topic,
+          serviceCategory: input.serviceCategory ?? 'clinical',
+          subject: topicLabel(input.topic),
+        })
         .returning();
       const [message] = await tx
         .insert(messages)
@@ -155,6 +160,11 @@ const TOPIC_LABELS: Record<string, string> = {
   online_appointment: 'Online appointment',
   clinic_visit: 'Clinic visit',
   follow_up: 'Follow-up query',
+  clinical_query: 'Clinical query',
+  care_support: 'Professional care support',
+  wellbeing_coaching: 'Wellbeing coaching',
+  insurance_query: 'Insurance query',
+  general_support: 'General support',
 };
 
 function topicLabel(topic: string): string {

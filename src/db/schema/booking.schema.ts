@@ -39,6 +39,9 @@ export const appointments = pgTable('appointments', {
   /** For `in_person` visits: the Smart GP clinic's city and name. */
   locationCity: text('location_city'),
   clinicName: text('clinic_name'),
+  clinicAddress: text('clinic_address'),
+  arrivalInstructions: text('arrival_instructions'),
+  serviceCategory: text('service_category').notNull().default('gp'),
   /** The "Prepare for ..." intake: symptoms/reason, medicines and allergies, accessibility
    * support, callback number, where the patient will be (online), remote-assessment consent. */
   intake: jsonb('intake').$type<AppointmentIntake>(),

@@ -13,6 +13,7 @@ const _config = require("@nestjs/config");
 const _jwt = require("@nestjs/jwt");
 const _configuration = require("../../common/config/configuration");
 const _emailmodule = require("../../common/email/email.module");
+const _smsmodule = require("../../common/sms/sms.module");
 const _identitycontroller = require("./identity.controller");
 const _identityservice = require("./identity.service");
 const _patientjwtauthguard = require("./patient-jwt-auth.guard");
@@ -35,6 +36,7 @@ IdentityModule = _ts_decorate([
     (0, _common.Module)({
         imports: [
             _emailmodule.EmailModule,
+            _smsmodule.SmsModule,
             // Module-scoped, so JwtService resolves to this SESSION_JWT_SECRET-signed instance here
             // (and in PatientJwtAuthGuard) rather than CommonAuthModule's global, staff-secret one.
             _jwt.JwtModule.registerAsync({

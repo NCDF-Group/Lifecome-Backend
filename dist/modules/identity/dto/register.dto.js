@@ -39,12 +39,6 @@ _export(exports, {
     get RequestPasswordResetSchema () {
         return RequestPasswordResetSchema;
     },
-    get SetPasswordDto () {
-        return SetPasswordDto;
-    },
-    get SetPasswordSchema () {
-        return SetPasswordSchema;
-    },
     get VerifyOtpDto () {
         return VerifyOtpDto;
     },
@@ -61,10 +55,12 @@ _export(exports, {
 const _zoddto = require("../../../common/validation/zod-dto");
 const _zod = require("zod");
 const RegisterSchema = _zod.z.object({
+    firstName: _zod.z.string().min(1).max(100),
+    lastName: _zod.z.string().min(1).max(100),
     email: _zod.z.email(),
-    /** Optional contact info only - never used to sign in or verify anything (email OTP is).
-   * E.164-ish; loosely validated here, normalised properly once a real SMS provider is wired in
-   * for things like appointment reminders. */ phoneNumber: _zod.z.string().min(8).max(20).regex(/^\+?[0-9]+$/, 'Phone number must contain only digits and an optional leading +').optional()
+    /** E.164-ish; loosely validated here. This is what the sign-up OTP is sent to. */ phoneNumber: _zod.z.string().min(8).max(20).regex(/^\+?[0-9]+$/, 'Phone number must contain only digits and an optional leading +'),
+    /** Set immediately at registration — sign-up no longer has a separate "create password" step
+   * after verification (see `IdentityService.register`). */ password: _zod.z.string().min(8).max(200)
 });
 let RegisterDto = class RegisterDto extends (0, _zoddto.createZodDto)(RegisterSchema) {
 };
@@ -78,12 +74,6 @@ const RequestOtpSchema = _zod.z.object({
     userAccountId: _zod.z.uuid()
 });
 let RequestOtpDto = class RequestOtpDto extends (0, _zoddto.createZodDto)(RequestOtpSchema) {
-};
-const SetPasswordSchema = _zod.z.object({
-    userAccountId: _zod.z.uuid(),
-    password: _zod.z.string().min(8).max(200)
-});
-let SetPasswordDto = class SetPasswordDto extends (0, _zoddto.createZodDto)(SetPasswordSchema) {
 };
 const PatientLoginSchema = _zod.z.object({
     email: _zod.z.email(),

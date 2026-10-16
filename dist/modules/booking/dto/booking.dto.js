@@ -29,6 +29,12 @@ _export(exports, {
     },
     get ListAppointmentsQuerySchema () {
         return ListAppointmentsQuerySchema;
+    },
+    get RescheduleAppointmentDto () {
+        return RescheduleAppointmentDto;
+    },
+    get RescheduleAppointmentSchema () {
+        return RescheduleAppointmentSchema;
     }
 });
 const _zoddto = require("../../../common/validation/zod-dto");
@@ -68,6 +74,14 @@ const CreateAppointmentSchema = _zod.z.object({
     ]).default('pay_per_visit'),
     /** In-person visits only. */ locationCity: _zod.z.string().max(100).optional(),
     clinicName: _zod.z.string().max(200).optional(),
+    clinicAddress: _zod.z.string().max(300).optional(),
+    arrivalInstructions: _zod.z.string().max(1000).optional(),
+    serviceCategory: _zod.z.enum([
+        'gp',
+        'menopause',
+        'care',
+        'wellbeing'
+    ]).default('gp'),
     intake: _zod.z.object({
         reason: _zod.z.string().max(2000).optional(),
         medicinesAndAllergies: _zod.z.string().max(2000).optional(),
@@ -83,6 +97,11 @@ const CreateMyAppointmentSchema = CreateAppointmentSchema.omit({
     patientId: true
 });
 let CreateMyAppointmentDto = class CreateMyAppointmentDto extends (0, _zoddto.createZodDto)(CreateMyAppointmentSchema) {
+};
+const RescheduleAppointmentSchema = _zod.z.object({
+    newAvailabilitySlotId: _zod.z.uuid()
+});
+let RescheduleAppointmentDto = class RescheduleAppointmentDto extends (0, _zoddto.createZodDto)(RescheduleAppointmentSchema) {
 };
 
 //# sourceMappingURL=booking.dto.js.map

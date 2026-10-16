@@ -25,7 +25,42 @@ async function bootstrap(): Promise<void> {
   const fastify = app.getHttpAdapter().getInstance();
   await fastify.register(fastifyHelmet, { global: true });
   await fastify.register(fastifyCompress);
-  await fastify.register(fastifyCors, { origin: config.corsOrigins, credentials: true });
+  await fastify.register(fastifyCors, {
+    origin: (origin, cb) => {
+      // Mobile native apps (React Native, Flutter, Swift/Kotlin), curl, server-to-server have no Origin header
+      if (!origin) {
+        cb(null, true);
+        return;
+      }
+      // Check configured origins
+      if (
+        config.corsOrigins.includes('*') ||
+        config.corsOrigins.includes(origin) ||
+        // Allow localhost and local IP origins for local web/mobile development
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+        // Allow hybrid mobile schemes
+        origin.startsWith('capacitor://') ||
+        origin.startsWith('ionic://')
+      ) {
+        cb(null, true);
+        return;
+      }
+      cb(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Idempotency-Key',
+      'x-correlation-id',
+      'x-region',
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+    ],
+    exposedHeaders: ['x-correlation-id', 'content-disposition'],
+  });
   await fastify.register(fastifyRateLimit, { max: 100, timeWindow: '1 minute' });
 
   // Echoes the correlation id (see app.module.ts's pinoHttp.genReqId) back to the caller.
@@ -45,8 +80,26 @@ async function bootstrap(): Promise<void> {
     app,
     new DocumentBuilder()
       .setTitle('LifeCome Live API')
-      .setDescription('Modular-monolith API for the LifeCome Live platform. See ../docs/prd for the product blueprint.')
+      .setDescription('Modular-monolith API for the LifeCome Live platform (Web and Mobile apps). See ../docs/prd for the product blueprint.')
       .setVersion('0.1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Patient session JWT (obtained from /api/v1/identity/login or /api/v1/identity/otp/verify)',
+        },
+        'patient-jwt',
+      )
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Staff JWT for admin operations console (/api/v1/auth/login)',
+        },
+        'staff-jwt',
+      )
       .build(),
   );
   SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });

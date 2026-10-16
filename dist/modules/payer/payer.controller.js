@@ -47,6 +47,17 @@ let PayerController = class PayerController {
         const patient = await this.patients.requireProfile(account.sub);
         return this.payerService.verifyMembership(patient.id, body.payerCode, body.memberId);
     }
+    /** The signed-in patient's verified HMO memberships. */ async listMyMemberships(account) {
+        const patient = await this.patients.requireProfile(account.sub);
+        return this.payerService.listMembershipsForPatient(patient.id);
+    }
+    /** Remove/unlink an HMO membership. */ async deleteMyMembership(account, id) {
+        const patient = await this.patients.requireProfile(account.sub);
+        return this.payerService.deleteMembership(patient.id, id);
+    }
+    /** View 08 — HMO Coverage & Benefits for a payer. */ getCoveragePlans(code) {
+        return this.payerService.getCoveragePlans(code);
+    }
     constructor(payerService, patients){
         this.payerService = payerService;
         this.patients = patients;
@@ -70,6 +81,36 @@ _ts_decorate([
     ]),
     _ts_metadata("design:returntype", Promise)
 ], PayerController.prototype, "verifyMembership", null);
+_ts_decorate([
+    (0, _common.Get)('memberships'),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken
+    ]),
+    _ts_metadata("design:returntype", Promise)
+], PayerController.prototype, "listMyMemberships", null);
+_ts_decorate([
+    (0, _common.Delete)('memberships/:id'),
+    (0, _common.HttpCode)(_common.HttpStatus.NO_CONTENT),
+    _ts_param(0, (0, _commonauthmodule.CurrentPatientAccount)()),
+    _ts_param(1, (0, _common.Param)('id', _common.ParseUUIDPipe)),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof PatientAccountToken === "undefined" ? Object : PatientAccountToken,
+        String
+    ]),
+    _ts_metadata("design:returntype", Promise)
+], PayerController.prototype, "deleteMyMembership", null);
+_ts_decorate([
+    (0, _common.Get)(':code/coverage-plans'),
+    _ts_param(0, (0, _common.Param)('code')),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String
+    ]),
+    _ts_metadata("design:returntype", typeof Promise === "undefined" ? Object : Promise)
+], PayerController.prototype, "getCoveragePlans", null);
 PayerController = _ts_decorate([
     (0, _swagger.ApiTags)('payer'),
     (0, _common.UseGuards)(_commonauthmodule.PatientAuthGuard),

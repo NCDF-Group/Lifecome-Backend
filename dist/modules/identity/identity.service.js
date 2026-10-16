@@ -18,8 +18,10 @@ const _schema = require("../../db/schema");
 const _configuration = require("../../common/config/configuration");
 const _appexception = require("../../common/errors/app-exception");
 const _emailservice = require("../../common/email/email.service");
+const _smsservice = require("../../common/sms/sms.service");
 const _password = require("../../common/security/password");
 const _templates = require("../../common/email/templates");
+const _templates1 = require("../../common/sms/templates");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") {
@@ -51,18 +53,31 @@ function toSummary(account) {
         ...account
     };
     delete summary.passwordHash;
-    return summary;
+    const registeredName = [
+        account.firstName,
+        account.lastName
+    ].filter(Boolean).join(' ').trim() || null;
+    return {
+        ...summary,
+        registeredName,
+        fullName: registeredName
+    };
 }
 let IdentityService = class IdentityService {
-    /** Idempotent: registering an already-known email returns the existing account. `phoneNumber`
-   * is optional contact info only - LifeCome Live verifies by email, not SMS. */ async register(email, phoneNumber) {
+    /** Idempotent: registering an already-known email returns the existing account as-is (no OTP
+   * resend, no overwrite of its name/password — use `otp/request` to resend). Otherwise creates
+   * the account with its password already hashed and sends the first OTP by SMS. */ async register(firstName, lastName, email, phoneNumber, password) {
         const [existing] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.email, email));
         if (existing) {
             return toSummary(existing);
         }
+        const passwordHash = await (0, _password.hashPassword)(password);
         const [created] = await this.db.insert(_schema.userAccounts).values({
             email,
             phoneNumber,
+            firstName,
+            lastName,
+            passwordHash,
             status: 'pending_verification'
         }).returning();
         await this.requestOtp(created.id);
@@ -71,22 +86,23 @@ let IdentityService = class IdentityService {
     async requestOtp(userAccountId) {
         const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId));
         if (!account) throw new _appexception.NotFoundAppException('User account');
+        if (!account.phoneNumber) {
+            throw new _appexception.AppException('PHONE_NUMBER_MISSING', 'This account has no mobile number on file.', _common.HttpStatus.BAD_REQUEST);
+        }
         return this.createChallenge(account, {
-            purpose: 'email_verification',
-            subject: 'Verify your email - LifeCome Live',
-            heading: 'Verify your email',
-            intro: 'Use the code below to verify your email address and finish signing in to LifeCome Live.'
+            purpose: 'phone_verification'
         });
     }
-    async verifyOtp(userAccountId, code) {
-        const challenge = await this.consumeChallenge(userAccountId, 'email_verification', code);
+    /** Verifies the sign-up OTP and, since the password was already set at registration, signs the
+   * patient straight in — there's no separate "create password" step after this one. */ async verifyOtp(userAccountId, code) {
+        const challenge = await this.consumeChallenge(userAccountId, 'phone_verification', code);
         if (!challenge) throw new _appexception.AppException('OTP_NOT_FOUND', 'Request a new code and try again.');
         const [account] = await this.db.update(_schema.userAccounts).set({
             status: 'active',
-            emailVerifiedAt: new Date(),
+            phoneVerifiedAt: new Date(),
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId)).returning();
-        return toSummary(account);
+        return this.issueSession(account);
     }
     /** Never reveals whether `email` has an account — a generic success either way. */ async requestPasswordReset(email) {
         const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.email, email));
@@ -95,10 +111,7 @@ let IdentityService = class IdentityService {
         };
         if (!account) return genericResponse;
         return this.createChallenge(account, {
-            purpose: 'password_reset',
-            subject: 'Reset your password - LifeCome Live',
-            heading: 'Reset your password',
-            intro: 'Use the code below to reset your LifeCome Live password.'
+            purpose: 'password_reset'
         });
     }
     /** Checks a reset code without consuming it, so the mobile app can move the user to the "new
@@ -123,20 +136,6 @@ let IdentityService = class IdentityService {
             updatedAt: new Date()
         }).where((0, _drizzleorm.eq)(_schema.userAccounts.id, account.id));
     }
-    /** Sets the account's password, then signs it straight in — its own step after `verifyOtp`,
-   * since sign-up verifies the email before it ever asks for a password. */ async setPassword(userAccountId, password) {
-        const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId));
-        if (!account) throw new _appexception.NotFoundAppException('User account');
-        if (!account.emailVerifiedAt) {
-            throw new _appexception.AppException('EMAIL_NOT_VERIFIED', 'Verify your email before setting a password.', _common.HttpStatus.BAD_REQUEST);
-        }
-        const passwordHash = await (0, _password.hashPassword)(password);
-        const [updated] = await this.db.update(_schema.userAccounts).set({
-            passwordHash,
-            updatedAt: new Date()
-        }).where((0, _drizzleorm.eq)(_schema.userAccounts.id, userAccountId)).returning();
-        return this.issueSession(updated);
-    }
     async login(email, password) {
         const [account] = await this.db.select().from(_schema.userAccounts).where((0, _drizzleorm.eq)(_schema.userAccounts.email, email));
         if (!account || !account.passwordHash) {
@@ -159,8 +158,9 @@ let IdentityService = class IdentityService {
             account: toSummary(account)
         };
     }
-    /** Creates and emails a fresh OTP for `purpose`, shared by email verification and password
-   * reset so the two never drift apart in TTL/attempt behaviour — only the email copy differs. */ async createChallenge(account, options) {
+    /** Creates a fresh OTP for `purpose` and sends it over the channel that purpose uses: SMS for
+   * sign-up (`phone_verification`), email for `password_reset` — forgot-password hasn't moved off
+   * email. One method so both never drift apart in TTL/attempt behaviour. */ async createChallenge(account, options) {
         const code = String((0, _nodecrypto.randomInt)(0, 1_000_000)).padStart(6, '0');
         const codeHash = this.hashCode(code);
         const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
@@ -170,33 +170,44 @@ let IdentityService = class IdentityService {
             purpose: options.purpose,
             expiresAt
         });
-        // EmailService no-ops (and just logs) when BREVO_API_KEY/BREVO_SENDER_EMAIL aren't set - see
-        // its own doc comment for why a failed/unconfigured send never blocks this request.
-        await this.email.send({
-            to: account.email,
-            subject: options.subject,
-            html: (0, _templates.otpEmailHtml)({
-                code,
-                expiresInMinutes: OTP_TTL_MINUTES,
-                heading: options.heading,
-                intro: options.intro
-            })
-        });
+        // Both services no-op (and just log) when unconfigured — see SmsService/EmailService's own
+        // doc comments for why a failed/unconfigured send never blocks this request.
+        if (options.purpose === 'phone_verification') {
+            await this.sms.send({
+                to: account.phoneNumber,
+                body: (0, _templates1.otpSmsText)({
+                    code,
+                    expiresInMinutes: OTP_TTL_MINUTES
+                })
+            });
+        } else {
+            await this.email.send({
+                to: account.email,
+                subject: 'Reset your password - LifeCome Live',
+                html: (0, _templates.otpEmailHtml)({
+                    code,
+                    expiresInMinutes: OTP_TTL_MINUTES,
+                    heading: 'Reset your password',
+                    intro: 'Use the code below to reset your LifeCome Live password.'
+                })
+            });
+        }
         // Never log a live OTP in production; in development this is how you retrieve it without a
-        // real inbox attached (see EmailService for the equivalent behind BREVO_API_KEY).
+        // real phone/inbox attached (see SmsService/EmailService for the equivalent behind their own
+        // provider config).
         if (!this.config.isProduction) {
             this.logger.debug({
                 userAccountId: account.id,
                 purpose: options.purpose,
                 code
-            }, 'OTP generated (development only — logged regardless of email delivery)');
+            }, 'OTP generated (development only — logged regardless of delivery)');
         }
         return {
             expiresAt
         };
     }
     /** The latest unconsumed challenge for `purpose`, scoped by purpose so a pending
-   * email-verification code and a pending password-reset code can never be swapped for one
+   * phone-verification code and a pending password-reset code can never be swapped for one
    * another even while both exist for the same account. */ async findChallenge(userAccountId, purpose) {
         const [challenge] = await this.db.select().from(_schema.otpChallenges).where((0, _drizzleorm.and)((0, _drizzleorm.eq)(_schema.otpChallenges.userAccountId, userAccountId), (0, _drizzleorm.eq)(_schema.otpChallenges.purpose, purpose), (0, _drizzleorm.isNull)(_schema.otpChallenges.consumedAt))).orderBy((0, _drizzleorm.desc)(_schema.otpChallenges.createdAt)).limit(1);
         return challenge;
@@ -232,10 +243,11 @@ let IdentityService = class IdentityService {
     hashCode(code) {
         return (0, _nodecrypto.createHash)('sha256').update(`${code}:${this.config.sessionJwtSecret}`).digest('hex');
     }
-    constructor(db, config, email, jwt, logger){
+    constructor(db, config, email, sms, jwt, logger){
         this.db = db;
         this.config = config;
         this.email = email;
+        this.sms = sms;
         this.jwt = jwt;
         this.logger = logger;
     }
@@ -243,12 +255,13 @@ let IdentityService = class IdentityService {
 IdentityService = _ts_decorate([
     (0, _common.Injectable)(),
     _ts_param(0, (0, _common.Inject)(_client.DRIZZLE)),
-    _ts_param(4, (0, _nestjspino.InjectPinoLogger)(IdentityService.name)),
+    _ts_param(5, (0, _nestjspino.InjectPinoLogger)(IdentityService.name)),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         typeof Database === "undefined" ? Object : Database,
         typeof _configuration.AppConfigService === "undefined" ? Object : _configuration.AppConfigService,
         typeof _emailservice.EmailService === "undefined" ? Object : _emailservice.EmailService,
+        typeof _smsservice.SmsService === "undefined" ? Object : _smsservice.SmsService,
         typeof _jwt.JwtService === "undefined" ? Object : _jwt.JwtService,
         typeof _nestjspino.PinoLogger === "undefined" ? Object : _nestjspino.PinoLogger
     ])

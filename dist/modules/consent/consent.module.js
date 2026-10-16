@@ -9,6 +9,7 @@ Object.defineProperty(exports, "ConsentModule", {
     }
 });
 const _common = require("@nestjs/common");
+const _patientmodule = require("../patient/patient.module");
 const _consentadmincontroller = require("./consent-admin.controller");
 const _consentcontroller = require("./consent.controller");
 const _consentservice = require("./consent.service");
@@ -29,6 +30,9 @@ let ConsentModule = class ConsentModule {
 };
 ConsentModule = _ts_decorate([
     (0, _common.Module)({
+        imports: [
+            _patientmodule.PatientModule
+        ],
         controllers: [
             _consentcontroller.ConsentController,
             _consentadmincontroller.ConsentAdminController

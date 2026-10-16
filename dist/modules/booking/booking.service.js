@@ -112,6 +112,42 @@ let BookingService = class BookingService {
         await this.getForPatient(accountId, id);
         return this.cancel(id);
     }
+    /** Reschedules an existing appointment to a new availability slot. */ async rescheduleForPatient(accountId, id, newAvailabilitySlotId) {
+        const current = await this.getForPatient(accountId, id);
+        if (![
+            'slot_held',
+            'confirmed',
+            'rescheduled'
+        ].includes(current.status)) {
+            throw new _appexception.AppException('BOOKING_NOT_RESCHEDULABLE', `This booking cannot be rescheduled from its current state (${current.status}).`, _common.HttpStatus.CONFLICT);
+        }
+        if (current.availabilitySlotId === newAvailabilitySlotId) {
+            throw new _appexception.AppException('SAME_SLOT_SELECTED', 'The selected time is the same as the current booking.', _common.HttpStatus.BAD_REQUEST);
+        }
+        const [newSlot] = await this.db.select().from(_schema.availabilitySlots).where((0, _drizzleorm.eq)(_schema.availabilitySlots.id, newAvailabilitySlotId));
+        if (!newSlot) throw new _appexception.NotFoundAppException('Availability slot');
+        if (newSlot.providerId !== current.providerId) {
+            throw new _appexception.AppException('SLOT_PROVIDER_MISMATCH', 'That time does not belong to this clinician.', _common.HttpStatus.BAD_REQUEST);
+        }
+        if (newSlot.startsAt.getTime() <= Date.now()) {
+            throw new _appexception.AppException('SLOT_IN_PAST', 'That time has already passed. Please choose another.', _common.HttpStatus.BAD_REQUEST);
+        }
+        // Hold the new slot first to guarantee availability
+        await this.scheduling.holdSlot(newAvailabilitySlotId);
+        // Release the previous slot
+        await this.scheduling.release(current.availabilitySlotId);
+        const nextStatus = current.status === 'slot_held' ? 'slot_held' : 'confirmed';
+        if (nextStatus === 'confirmed') {
+            await this.scheduling.markBooked(newAvailabilitySlotId);
+        }
+        const [updated] = await this.db.update(_schema.appointments).set({
+            availabilitySlotId: newAvailabilitySlotId,
+            status: nextStatus,
+            updatedAt: new Date()
+        }).where((0, _drizzleorm.eq)(_schema.appointments.id, id)).returning();
+        await this.notifyPatient(updated, 'confirmed');
+        return updated;
+    }
     async getById(id) {
         const [appointment] = await this.db.select().from(_schema.appointments).where((0, _drizzleorm.eq)(_schema.appointments.id, id));
         if (!appointment) throw new _appexception.NotFoundAppException('Appointment');

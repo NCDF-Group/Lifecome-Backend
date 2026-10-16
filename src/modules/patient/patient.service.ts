@@ -6,10 +6,12 @@ import { DRIZZLE, type Database } from '../../db/client';
 import {
   appointments,
   availabilitySlots,
+  careArrangements,
   carePlans,
   clinicalServices,
   consultationSessions,
   encounters,
+  insurancePolicies,
   memberships,
   patientAvatars,
   patientDependants,
@@ -18,6 +20,7 @@ import {
   payers,
   prescriptions,
   providers,
+  shopOrders,
   userAccounts,
 } from '../../db/schema';
 import { MAX_AVATAR_BYTES, type UploadAvatarDto } from '../../common/dto/avatar.dto';
@@ -36,12 +39,47 @@ import type {
 export type Patient = typeof patients.$inferSelect;
 export type Dependant = typeof patientDependants.$inferSelect;
 
-/** What `GET /me` returns: the sign-in account plus the clinical profile (null until it's created). */
 export interface MeResponse {
-  account: { id: string; email: string; phoneNumber: string | null; status: string };
+  account: {
+    id: string;
+    email: string;
+    phoneNumber: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    registeredName?: string | null;
+    status: string;
+  };
   profile: Patient | null;
-  /** "Ada Okafor" - null until a profile exists, so the app never has to fall back to the email. */
+  /** "Ada Okafor" - user full name from clinical profile or registered account */
   displayName: string | null;
+  fullName: string | null;
+  secondName?: string | null;
+}
+
+function parseName(input: { fullName?: string | null; firstName?: string | null; lastName?: string | null }) {
+  let firstName = (input.firstName || '').trim();
+  let lastName = (input.lastName || '').trim();
+
+  if (input.fullName && input.fullName.trim()) {
+    const parts = input.fullName.trim().split(/\s+/).filter(Boolean);
+    if (!firstName && parts.length > 0) {
+      firstName = parts[0];
+    }
+    if (!lastName && parts.length > 1) {
+      lastName = parts.slice(1).join(' ');
+    }
+  }
+
+  if (!lastName && firstName.includes(' ')) {
+    const parts = firstName.split(/\s+/).filter(Boolean);
+    firstName = parts[0];
+    lastName = parts.slice(1).join(' ');
+  }
+
+  return {
+    firstName: firstName || 'Patient',
+    lastName: lastName || '',
+  };
 }
 
 /** A patient row joined with its account's contact details — what the admin console lists. */
@@ -56,17 +94,35 @@ export class PatientService {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
 
   async createProfile(input: CreatePatientProfileDto): Promise<Patient> {
-    const [created] = await this.db.insert(patients).values(input).returning();
+    const { fullName, ...rest } = input;
+    const names = parseName({ fullName, firstName: input.firstName, lastName: input.lastName });
+    const payload = {
+      ...rest,
+      firstName: names.firstName,
+      lastName: names.lastName,
+    };
+    const [created] = await this.db.insert(patients).values(payload).returning();
     return created;
   }
 
-  async getById(id: string): Promise<Patient> {
+  async getById(id: string): Promise<Patient & { registeredFirstName?: string | null; registeredLastName?: string | null; registeredName?: string; email?: string | null; phoneNumber?: string | null }> {
     const [found] = await this.db
-      .select()
+      .select({
+        ...getTableColumns(patients),
+        registeredFirstName: userAccounts.firstName,
+        registeredLastName: userAccounts.lastName,
+        email: userAccounts.email,
+        phoneNumber: userAccounts.phoneNumber,
+      })
       .from(patients)
+      .leftJoin(userAccounts, eq(patients.userAccountId, userAccounts.id))
       .where(or(eq(patients.id, id), eq(patients.userAccountId, id)));
     if (!found) throw new NotFoundAppException('Patient');
-    return found;
+    const registeredName = [found.registeredFirstName, found.registeredLastName].filter(Boolean).join(' ').trim() || undefined;
+    return {
+      ...found,
+      registeredName,
+    };
   }
 
   /** `/admin/patients` — every patient with its account's contact details, searchable by name/email/phone. */
@@ -130,10 +186,21 @@ export class PatientService {
   }
 
   async update(id: string, input: UpdatePatientProfileDto): Promise<Patient> {
-    await this.getById(id); // 404s early if missing
+    const existing = await this.getById(id); // 404s early if missing
+    const { fullName, ...rest } = input;
+    const updatePayload: Record<string, unknown> = { ...rest };
+    if (fullName !== undefined || input.firstName !== undefined || input.lastName !== undefined) {
+      const names = parseName({
+        fullName,
+        firstName: input.firstName ?? existing.firstName,
+        lastName: input.lastName ?? existing.lastName,
+      });
+      updatePayload.firstName = names.firstName;
+      updatePayload.lastName = names.lastName;
+    }
     const [updated] = await this.db
       .update(patients)
-      .set({ ...input, updatedAt: new Date() })
+      .set({ ...updatePayload, updatedAt: new Date() })
       .where(eq(patients.id, id))
       .returning();
     return updated;
@@ -145,10 +212,26 @@ export class PatientService {
     const [account] = await this.db.select().from(userAccounts).where(eq(userAccounts.id, accountId));
     if (!account) throw new NotFoundAppException('Account');
     const profile = (await this.getByUserAccountId(accountId)) ?? null;
+    const accountFullName = [account.firstName, account.lastName].filter(Boolean).join(' ').trim();
+    const profileFullName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : '';
+    const fullName = profileFullName || accountFullName || null;
+    const nameParts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+    const secondName = nameParts.length >= 2 ? nameParts[1] : (nameParts[0] || null);
+
     return {
-      account: { id: account.id, email: account.email, phoneNumber: account.phoneNumber, status: account.status },
+      account: {
+        id: account.id,
+        email: account.email,
+        phoneNumber: account.phoneNumber,
+        firstName: account.firstName,
+        lastName: account.lastName,
+        registeredName: accountFullName || null,
+        status: account.status,
+      },
       profile,
-      displayName: profile ? `${profile.firstName} ${profile.lastName}`.trim() : null,
+      displayName: fullName,
+      fullName,
+      secondName,
     };
   }
 
@@ -163,24 +246,62 @@ export class PatientService {
 
   /** Creates the profile on first call, updates it afterwards - idempotent for the app's sign-up step. */
   async upsertMyProfile(accountId: string, input: UpsertMyProfileDto): Promise<Patient> {
+    const { fullName, ...rest } = input;
+    const names = parseName({ fullName, firstName: input.firstName, lastName: input.lastName });
+    const payload = {
+      ...rest,
+      firstName: names.firstName,
+      lastName: names.lastName,
+    };
+
+    // Keep userAccounts in sync with profile name
+    await this.db
+      .update(userAccounts)
+      .set({
+        firstName: names.firstName,
+        lastName: names.lastName,
+      })
+      .where(eq(userAccounts.id, accountId));
+
     const existing = await this.getByUserAccountId(accountId);
     if (existing) {
       const [updated] = await this.db
         .update(patients)
-        .set({ ...input, updatedAt: new Date() })
+        .set({ ...payload, updatedAt: new Date() })
         .where(eq(patients.id, existing.id))
         .returning();
       return updated;
     }
-    const [created] = await this.db.insert(patients).values({ ...input, userAccountId: accountId }).returning();
+    const [created] = await this.db.insert(patients).values({ ...payload, userAccountId: accountId }).returning();
     return created;
   }
 
   async patchMyProfile(accountId: string, input: PatchMyProfileDto): Promise<Patient> {
     const existing = await this.requireProfile(accountId);
+    const { fullName, ...rest } = input;
+    const updatePayload: Record<string, unknown> = { ...rest };
+
+    if (fullName !== undefined || input.firstName !== undefined || input.lastName !== undefined) {
+      const names = parseName({
+        fullName,
+        firstName: input.firstName ?? existing.firstName,
+        lastName: input.lastName ?? existing.lastName,
+      });
+      updatePayload.firstName = names.firstName;
+      updatePayload.lastName = names.lastName;
+
+      await this.db
+        .update(userAccounts)
+        .set({
+          firstName: names.firstName,
+          lastName: names.lastName,
+        })
+        .where(eq(userAccounts.id, accountId));
+    }
+
     const [updated] = await this.db
       .update(patients)
-      .set({ ...input, updatedAt: new Date() })
+      .set({ ...updatePayload, updatedAt: new Date() })
       .where(eq(patients.id, existing.id))
       .returning();
     return updated;
@@ -298,21 +419,95 @@ export class PatientService {
     const [account] = await this.db.select().from(userAccounts).where(eq(userAccounts.id, accountId));
     if (!account) throw new NotFoundAppException('Account');
 
+    const accountFullName = [account.firstName, account.lastName].filter(Boolean).join(' ').trim();
+    const profileFullName = profile ? `${profile.firstName} ${profile.lastName}`.trim() : '';
+    const fullName = profileFullName || accountFullName || null;
+    const nameParts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+    const secondName = nameParts.length >= 2 ? nameParts[1] : (nameParts[0] || null);
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const timeGreeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
+    const greeting = secondName ? `${timeGreeting}, ${secondName}` : timeGreeting;
+
+    const fourServices = [
+      {
+        id: 'gp',
+        title: 'GP',
+        subtitle: 'Online, clinic & menopause care',
+        destination: '/gp',
+        icon: 'stethoscope',
+        action: 'Book a GP appointment',
+      },
+      {
+        id: 'care',
+        title: 'Care',
+        subtitle: 'Professional care & support',
+        destination: '/care',
+        icon: 'hand-heart',
+        action: 'Request a care assessment',
+      },
+      {
+        id: 'wellbeing',
+        title: 'Wellbeing',
+        subtitle: 'Coaching, sessions & shop',
+        destination: '/wellbeing',
+        icon: 'leaf',
+        action: 'Explore sessions or shop',
+      },
+      {
+        id: 'insurance',
+        title: 'Insurance',
+        subtitle: 'Explore cover & manage policies',
+        destination: '/insurance',
+        icon: 'shield-check',
+        action: 'Explore cover or view policies',
+      },
+    ];
+
+    const quickLinks = {
+      bookGp: { label: 'Book a GP appointment', route: '/gp/book' },
+      visits: { label: 'Visits — Appointments & care visits', route: '/me/visits' },
+      healthRecords: { label: 'Health records — Your records & care plans', route: '/records' },
+      membership: { label: 'Membership & benefits — View your access and funding', route: '/membership' },
+      urgentHelp: { label: 'Need urgent help? View emergency guidance.', route: '/services/emergency-guidance' },
+    };
+
     if (!profile) {
       return {
-        account: { id: account.id, email: account.email, phoneNumber: account.phoneNumber, status: account.status },
+        account: {
+          id: account.id,
+          email: account.email,
+          phoneNumber: account.phoneNumber,
+          firstName: account.firstName,
+          lastName: account.lastName,
+          registeredName: accountFullName || null,
+          status: account.status,
+        },
         profile: null,
-        displayName: null,
+        displayName: fullName,
+        fullName,
+        secondName,
+        greeting,
+        heading: 'How can we help today?',
+        fourServices,
+        quickLinks,
         upcomingAppointment: null,
         activeCarePlan: null,
         recentVisits: [],
         hmoCoverage: null,
         unreadNotificationsCount: 0,
-        stats: { totalAppointments: 0, activePrescriptionsCount: 0, linkedPayersCount: 0, dependantsCount: 0 },
+        stats: {
+          totalAppointments: 0,
+          activePrescriptionsCount: 0,
+          linkedPayersCount: 0,
+          dependantsCount: 0,
+          careArrangementsCount: 0,
+          linkedInsurancePoliciesCount: 0,
+          shopOrdersCount: 0,
+        },
       };
     }
-
-    const now = new Date();
 
     // 1. Upcoming appointment
     const [upcoming] = await this.db
@@ -320,6 +515,11 @@ export class PatientService {
         id: appointments.id,
         status: appointments.status,
         consultationMode: appointments.consultationMode,
+        locationCity: appointments.locationCity,
+        clinicName: appointments.clinicName,
+        clinicAddress: appointments.clinicAddress,
+        arrivalInstructions: appointments.arrivalInstructions,
+        serviceCategory: appointments.serviceCategory,
         startsAt: availabilitySlots.startsAt,
         durationMinutes: availabilitySlots.durationMinutes,
         providerName: providers.displayName,
@@ -342,18 +542,25 @@ export class PatientService {
 
     let upcomingWithSession = null;
     if (upcoming) {
-      const [session] = await this.db
-        .select({ status: consultationSessions.status, roomName: consultationSessions.roomName })
-        .from(consultationSessions)
-        .where(eq(consultationSessions.appointmentId, upcoming.id));
+      const isClinic = upcoming.consultationMode === 'in_person';
+      let session = null;
+      if (!isClinic) {
+        const [foundSession] = await this.db
+          .select({ status: consultationSessions.status, roomName: consultationSessions.roomName })
+          .from(consultationSessions)
+          .where(eq(consultationSessions.appointmentId, upcoming.id));
+        session = foundSession;
+      }
+
       upcomingWithSession = {
         ...upcoming,
-        consultationStatus: session?.status ?? 'booked',
-        roomName: session?.roomName ?? null,
+        isClinicAppointment: isClinic,
+        consultationStatus: isClinic ? null : session?.status ?? 'booked',
+        roomName: isClinic ? null : session?.roomName ?? null,
       };
     }
 
-    // 2. Latest active care plan
+    // 2. Latest active clinical care plan (GP aftercare)
     const [carePlan] = await this.db
       .select({
         id: carePlans.id,
@@ -429,10 +636,39 @@ export class PatientService {
       .from(patientDependants)
       .where(eq(patientDependants.patientId, profile.id));
 
+    const [{ totalCareArrangements }] = await this.db
+      .select({ totalCareArrangements: count() })
+      .from(careArrangements)
+      .where(and(eq(careArrangements.patientId, profile.id), eq(careArrangements.status, 'active')));
+
+    const [{ totalInsurancePolicies }] = await this.db
+      .select({ totalInsurancePolicies: count() })
+      .from(insurancePolicies)
+      .where(eq(insurancePolicies.patientId, profile.id));
+
+    const [{ totalShopOrders }] = await this.db
+      .select({ totalShopOrders: count() })
+      .from(shopOrders)
+      .where(eq(shopOrders.patientId, profile.id));
+
     return {
-      account: { id: account.id, email: account.email, phoneNumber: account.phoneNumber, status: account.status },
+      account: {
+        id: account.id,
+        email: account.email,
+        phoneNumber: account.phoneNumber,
+        firstName: account.firstName,
+        lastName: account.lastName,
+        registeredName: accountFullName || null,
+        status: account.status,
+      },
       profile,
-      displayName: `${profile.firstName} ${profile.lastName}`.trim(),
+      displayName: fullName,
+      fullName,
+      secondName,
+      greeting,
+      heading: 'How can we help today?',
+      fourServices,
+      quickLinks,
       upcomingAppointment: upcomingWithSession,
       activeCarePlan: carePlan ?? null,
       recentVisits,
@@ -443,6 +679,9 @@ export class PatientService {
         activePrescriptionsCount: Number(totalPrescriptions),
         linkedPayersCount: Number(totalMemberships),
         dependantsCount: Number(totalDependants),
+        careArrangementsCount: Number(totalCareArrangements),
+        linkedInsurancePoliciesCount: Number(totalInsurancePolicies),
+        shopOrdersCount: Number(totalShopOrders),
       },
     };
   }

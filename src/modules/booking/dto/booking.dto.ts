@@ -29,6 +29,9 @@ export const CreateAppointmentSchema = z.object({
   /** In-person visits only. */
   locationCity: z.string().max(100).optional(),
   clinicName: z.string().max(200).optional(),
+  clinicAddress: z.string().max(300).optional(),
+  arrivalInstructions: z.string().max(1000).optional(),
+  serviceCategory: z.enum(['gp', 'menopause', 'care', 'wellbeing']).default('gp'),
   intake: z
     .object({
       reason: z.string().max(2000).optional(),

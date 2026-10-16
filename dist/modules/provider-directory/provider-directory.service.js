@@ -43,7 +43,24 @@ let ProviderDirectoryService = class ProviderDirectoryService {
             (0, _drizzleorm.eq)(_schema.providers.networkStatus, 'active')
         ];
         if (filters.specialty) conditions.push((0, _drizzleorm.eq)(_schema.providers.specialty, filters.specialty));
-        return this.db.select().from(_schema.providers).where(conditions.length > 1 ? (0, _drizzleorm.and)(...conditions) : conditions[0]);
+        if (filters.search) conditions.push((0, _drizzleorm.ilike)(_schema.providers.displayName, `%${filters.search}%`));
+        if (filters.city) conditions.push((0, _drizzleorm.ilike)(_schema.providers.city, `%${filters.city}%`));
+        if (filters.state) conditions.push((0, _drizzleorm.ilike)(_schema.providers.state, `%${filters.state}%`));
+        const rows = await this.db.select().from(_schema.providers).where(conditions.length > 1 ? (0, _drizzleorm.and)(...conditions) : conditions[0]);
+        let filtered = rows;
+        if (filters.language) {
+            filtered = filtered.filter((p)=>p.languages.includes(filters.language));
+        }
+        if (filters.consultationMode) {
+            filtered = filtered.filter((p)=>p.consultationModes.includes(filters.consultationMode));
+        }
+        return filtered;
+    }
+    async listSpecialties() {
+        const rows = await this.db.selectDistinct({
+            specialty: _schema.providers.specialty
+        }).from(_schema.providers).where((0, _drizzleorm.eq)(_schema.providers.networkStatus, 'active'));
+        return rows.map((r)=>r.specialty).filter(Boolean);
     }
     async getById(id) {
         const [provider] = await this.db.select().from(_schema.providers).where((0, _drizzleorm.eq)(_schema.providers.id, id));

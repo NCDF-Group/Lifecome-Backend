@@ -74,8 +74,16 @@ const CreateProviderSchema = _zod.z.object({
 let CreateProviderDto = class CreateProviderDto extends (0, _zoddto.createZodDto)(CreateProviderSchema) {
 };
 const ListProvidersQuerySchema = _zod.z.object({
+    search: _zod.z.string().optional(),
     specialty: _zod.z.string().optional(),
-    language: _zod.z.string().optional()
+    language: _zod.z.string().optional(),
+    consultationMode: _zod.z.enum([
+        'video',
+        'audio',
+        'in_person'
+    ]).optional(),
+    city: _zod.z.string().optional(),
+    state: _zod.z.string().optional()
 });
 let ListProvidersQueryDto = class ListProvidersQueryDto extends (0, _zoddto.createZodDto)(ListProvidersQuerySchema) {
 };

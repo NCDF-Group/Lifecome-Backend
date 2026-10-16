@@ -15,6 +15,12 @@ _export(exports, {
     get GrantConsentSchema () {
         return GrantConsentSchema;
     },
+    get GrantMyConsentDto () {
+        return GrantMyConsentDto;
+    },
+    get GrantMyConsentSchema () {
+        return GrantMyConsentSchema;
+    },
     get ListConsentRecordsQueryDto () {
         return ListConsentRecordsQueryDto;
     },
@@ -48,6 +54,11 @@ const GrantConsentSchema = _zod.z.object({
     channel: _zod.z.string().max(50).default('app')
 });
 let GrantConsentDto = class GrantConsentDto extends (0, _zoddto.createZodDto)(GrantConsentSchema) {
+};
+const GrantMyConsentSchema = GrantConsentSchema.omit({
+    patientId: true
+});
+let GrantMyConsentDto = class GrantMyConsentDto extends (0, _zoddto.createZodDto)(GrantMyConsentSchema) {
 };
 
 //# sourceMappingURL=consent.dto.js.map

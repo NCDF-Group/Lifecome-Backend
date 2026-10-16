@@ -47,6 +47,7 @@ let MessagingService = class MessagingService {
             const [thread] = await tx.insert(_schema.messageThreads).values({
                 patientId: patient.id,
                 topic: input.topic,
+                serviceCategory: input.serviceCategory ?? 'clinical',
                 subject: topicLabel(input.topic)
             }).returning();
             const [message] = await tx.insert(_schema.messages).values({
@@ -165,7 +166,12 @@ const TOPIC_LABELS = {
     booking_payments: 'Booking and payments',
     online_appointment: 'Online appointment',
     clinic_visit: 'Clinic visit',
-    follow_up: 'Follow-up query'
+    follow_up: 'Follow-up query',
+    clinical_query: 'Clinical query',
+    care_support: 'Professional care support',
+    wellbeing_coaching: 'Wellbeing coaching',
+    insurance_query: 'Insurance query',
+    general_support: 'General support'
 };
 function topicLabel(topic) {
     return TOPIC_LABELS[topic] ?? topic;

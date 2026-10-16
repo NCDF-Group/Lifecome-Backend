@@ -22,16 +22,18 @@ const userAccounts = (0, _pgcore.pgTable)('user_accounts', {
     id: (0, _pgcore.uuid)('id').primaryKey().defaultRandom(),
     email: (0, _pgcore.text)('email').notNull(),
     phoneNumber: (0, _pgcore.text)('phone_number'),
-    /** Null until `IdentityService.setPassword` - the account exists (and its email may already
-     * be verified) before it necessarily has one, since sign-up verifies the email first and sets
-     * a password as its own separate step (see `IdentityController`'s `POST /identity/password`). */ passwordHash: (0, _pgcore.text)('password_hash'),
+    /** Basic contact names, collected at sign-up. Not the clinical identity - that's
+     * `patients.firstName`/`lastName`, collected separately once care-profile details exist. */ firstName: (0, _pgcore.text)('first_name'),
+    lastName: (0, _pgcore.text)('last_name'),
+    /** Set at registration now that sign-up collects a password up front (see
+     * `IdentityService.register`) - no longer a later, separate step. */ passwordHash: (0, _pgcore.text)('password_hash'),
     status: (0, _enums.userAccountStatusEnum)('status').notNull().default('pending_verification'),
-    emailVerifiedAt: (0, _pgcore.timestamp)('email_verified_at', {
+    /** @deprecated Unused now that verification is by phone/SMS (see `phoneVerifiedAt`) - kept
+     * rather than dropped so this migration stays a pure addition, with nothing ambiguous for
+     * drizzle-kit to ask about. Safe to actually drop in a later, standalone migration. */ emailVerifiedAt: (0, _pgcore.timestamp)('email_verified_at', {
         withTimezone: true
     }),
-    /** @deprecated Unused now that verification is by email (see `emailVerifiedAt`) - kept
-     * rather than dropped so this migration is a pure addition, with nothing ambiguous for
-     * drizzle-kit to ask about. Safe to actually drop in a later, standalone migration. */ phoneVerifiedAt: (0, _pgcore.timestamp)('phone_verified_at', {
+    phoneVerifiedAt: (0, _pgcore.timestamp)('phone_verified_at', {
         withTimezone: true
     }),
     mfaEnabled: (0, _pgcore.boolean)('mfa_enabled').notNull().default(false),
@@ -53,7 +55,7 @@ const otpChallenges = (0, _pgcore.pgTable)('otp_challenges', {
         onDelete: 'cascade'
     }),
     codeHash: (0, _pgcore.text)('code_hash').notNull(),
-    purpose: (0, _pgcore.text)('purpose').notNull().default('email_verification'),
+    purpose: (0, _pgcore.text)('purpose').notNull().default('phone_verification'),
     expiresAt: (0, _pgcore.timestamp)('expires_at', {
         withTimezone: true
     }).notNull(),
