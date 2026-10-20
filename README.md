@@ -29,6 +29,7 @@ docker compose up -d          # Postgres on :5432, Redis on :6379
 npm install
 npm run db:migrate            # applies the SQL migrations in drizzle/
 npm run db:seed:staff         # creates the first platform_administrator — see Operations console API
+npm run db:seed:patient       # creates a temporary patient test login — see below
 npm run dev                   # API at http://localhost:3001/api/v1, Swagger UI at /api/docs
 ```
 
@@ -48,7 +49,16 @@ environment, including production, so other teams (web, mobile) have one live AP
 | `npm run db:generate` | Generate a SQL migration from schema changes |
 | `npm run db:migrate` | Apply pending migrations |
 | `npm run db:seed:staff` | Create the first `platform_administrator` staff account (from `SEED_ADMIN_*` env vars) |
+| `npm run db:seed:patient` | Create a temporary, email-verified patient login (from `SEED_PATIENT_*` env vars) |
 | `npm run db:studio` | Open Drizzle Studio against the local database |
+
+For a temporary mobile-app login, set `SEED_PATIENT_EMAIL` and `SEED_PATIENT_PASSWORD` in the
+backend environment, then run `npm run db:seed:patient`. The command creates an active sign-in
+account and does not overwrite an existing account. It also adds the current patient auth columns if
+they are missing from an older `user_accounts` table and sets the OTP purpose default for email
+verification. It does not create a clinical profile; the app may ask you to complete one after
+sign-in. Remove this account or change its password before opening a shared test server to the
+public.
 
 ## Layout
 
@@ -113,48 +123,20 @@ before a real HMO integration exists. **A new payer is config, not a code branch
 
 ## SMS delivery
 
-`modules/identity/identity.service.ts` sends the phone-verification OTP via **httpSMS**
-(httpsms.com, `common/sms/sms.service.ts`) — not a telecom aggregator like Termii or Twilio. The
-"provider" is a real Android phone running the httpSMS app on its own SIM; the API just tells that
-phone to send a normal text message through its own carrier connection.
-
-This is a deliberate, scale-limited choice, not a placeholder for something better already built:
-
-- **One physical phone** does the sending — its battery, signal and the free/paid httpSMS plan's
-  monthly cap (200 free, then $10/mo for 5K or $20/mo for 10K) are the real throughput limit.
-- **No delivery SLA.** If the phone is off, offline, or the httpSMS app gets killed by battery
-  optimisation, sends silently stop (httpSMS does notify the account owner when the phone goes
-  offline, but nothing here surfaces that in the admin console yet).
-- **The sender is that phone's own number**, not a short code — recipients see the OTP arrive from
-  an ordinary mobile number.
-- **A carrier could flag or throttle the SIM** for sending automated, similar-looking messages,
-  since that's outside what a personal SIM plan is meant for.
-
-It's the right fit for the current scale (one market, low volume) and for testing OTP delivery on
-a real phone instead of reading the code from a log. Move to a real aggregator — Termii for
-Nigeria (`TERMII_API_KEY` already exists in the env schema, unused so far), a separate provider for
-the UK — before volume or reliability requirements outgrow it; `SmsService`'s interface
-(`send({ to, body })`) is the seam to swap behind, `IdentityService` doesn't need to change.
-
-**Setup:** create an account at [httpsms.com](https://httpsms.com), install the companion Android
-app on the phone, sign in with the API key from the account's settings page, then set
-`HTTPSMS_API_KEY` (the account's API key) and `HTTPSMS_FROM_NUMBER` (that phone's own number, in
-E.164, e.g. `+2348012345678`) — see `.env.example`. Leave both unset and `requestOtp` just logs the
-code instead of sending it (development's existing behaviour, unchanged).
+Patient sign-up verification uses email for now. The legacy httpSMS integration remains available
+for later SMS features, but it is not needed to create or verify a patient account.
 
 ## Email delivery
 
-Transactional email goes through **Brevo** (brevo.com, `common/email/email.service.ts`) — a real
-email API, not a personal-device workaround like the SMS setup above. The only thing that sends one
-today is `StaffService.create()`, which emails a new staff member that their operations-console
-account exists (deliberately **not** their password — whoever created the account shares that with
-them directly; the email just confirms the account and role).
+Transactional email goes through **Brevo** (brevo.com, `common/email/email.service.ts`). It sends
+patient sign-up verification and password-reset codes, and confirms when a staff operations-console
+account is created (the email deliberately does not include the staff password).
 
 **Setup:** create an account at [brevo.com](https://brevo.com), add and verify a sender address
 under **Settings → Senders** (unverified senders are rejected), then get an API key under
 **Settings → API Keys**. Set `BREVO_API_KEY` and `BREVO_SENDER_EMAIL` (the verified address) — see
-`.env.example`. Leave either unset and `EmailService.send` just logs instead of sending, the same
-fallback `SmsService` uses. Free plan: 300 emails/day, no time limit.
+`.env.example`. Leave either unset and `EmailService.send` logs instead of sending in development;
+configure both on the server to receive verification codes by email.
 
 ## Operations console API
 

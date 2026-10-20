@@ -4,7 +4,6 @@ import { JwtModule } from '@nestjs/jwt';
 
 import { AppConfigService } from '../../common/config/configuration';
 import { EmailModule } from '../../common/email/email.module';
-import { SmsModule } from '../../common/sms/sms.module';
 import { IdentityController } from './identity.controller';
 import { IdentityService } from './identity.service';
 import { PatientJwtAuthGuard } from './patient-jwt-auth.guard';
@@ -12,7 +11,6 @@ import { PatientJwtAuthGuard } from './patient-jwt-auth.guard';
 @Module({
   imports: [
     EmailModule,
-    SmsModule,
     // Module-scoped, so JwtService resolves to this SESSION_JWT_SECRET-signed instance here
     // (and in PatientJwtAuthGuard) rather than CommonAuthModule's global, staff-secret one.
     JwtModule.registerAsync({

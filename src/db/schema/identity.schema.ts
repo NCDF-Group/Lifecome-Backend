@@ -3,9 +3,9 @@ import { boolean, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-or
 import { userAccountStatusEnum } from './enums';
 
 /**
- * Authentication identity. Email is the account identifier; phone number is what's verified at
- * sign-up (LifeCome Live uses SMS OTP there - see `IdentityService`) and doubles as the sign-in
- * contact channel. Name and password are collected in the same sign-up step, ahead of
+ * Authentication identity. Email is the account identifier and is verified at sign-up with an
+ * email OTP (see `IdentityService`). Phone number is retained as a patient contact channel. Name
+ * and password are collected in the same sign-up step, ahead of
  * verification, so `passwordHash` is set from the start rather than as a later step.
  * Clinical/demographic detail still lives on `patients`, one-to-one with this.
  */
@@ -23,9 +23,7 @@ export const userAccounts = pgTable(
      * `IdentityService.register`) - no longer a later, separate step. */
     passwordHash: text('password_hash'),
     status: userAccountStatusEnum('status').notNull().default('pending_verification'),
-    /** @deprecated Unused now that verification is by phone/SMS (see `phoneVerifiedAt`) - kept
-     * rather than dropped so this migration stays a pure addition, with nothing ambiguous for
-     * drizzle-kit to ask about. Safe to actually drop in a later, standalone migration. */
+    /** Set when the account email is verified. */
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     phoneVerifiedAt: timestamp('phone_verified_at', { withTimezone: true }),
     mfaEnabled: boolean('mfa_enabled').notNull().default(false),
@@ -40,14 +38,14 @@ export const userAccounts = pgTable(
   ],
 );
 
-/** A single-use one-time-passcode challenge for sign-up phone verification or password reset. */
+/** A single-use one-time-passcode challenge for sign-up email verification or password reset. */
 export const otpChallenges = pgTable('otp_challenges', {
   id: uuid('id').primaryKey().defaultRandom(),
   userAccountId: uuid('user_account_id')
     .notNull()
     .references(() => userAccounts.id, { onDelete: 'cascade' }),
   codeHash: text('code_hash').notNull(),
-  purpose: text('purpose').notNull().default('phone_verification'),
+  purpose: text('purpose').notNull().default('email_verification'),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   consumedAt: timestamp('consumed_at', { withTimezone: true }),
   attemptCount: text('attempt_count').notNull().default('0'),

@@ -18,7 +18,7 @@ export class IdentityController {
   constructor(private readonly identity: IdentityService) {}
 
   /** View 01 — Create Account. Collects name, email, mobile number and password in one step,
-   * then sends the first OTP by SMS to that number. */
+   * then sends the first verification OTP to the email address. */
   @Post('register')
   register(@Body() body: RegisterDto): Promise<UserAccountSummary> {
     return this.identity.register(body.firstName, body.lastName, body.email, body.phoneNumber, body.password);
@@ -29,7 +29,7 @@ export class IdentityController {
     return this.identity.requestOtp(body.userAccountId);
   }
 
-  /** View 02 — Verify Mobile. The password was already set at registration, so a successful
+  /** View 02 — Verify Email. The password was already set at registration, so a successful
    * verify signs the patient straight in. */
   @Post('otp/verify')
   verifyOtp(@Body() body: VerifyOtpDto): Promise<PatientSession> {

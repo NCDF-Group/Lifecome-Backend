@@ -5,7 +5,7 @@ export const RegisterSchema = z.object({
   firstName: z.string().min(1).max(100),
   lastName: z.string().min(1).max(100),
   email: z.email(),
-  /** E.164-ish; loosely validated here. This is what the sign-up OTP is sent to. */
+  /** E.164-ish; loosely validated here. Kept as a patient contact number; verification uses email. */
   phoneNumber: z
     .string()
     .min(8)
